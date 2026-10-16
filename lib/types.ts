@@ -1,5 +1,17 @@
 // Shared types for the AmanKampus reporting system
 
+// ─── AI Triage ─────────────────────────────────────────────────────────────────
+
+export type TriageRiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface AITriageResult {
+  riskLevel: TriageRiskLevel;
+  urgencyScore: number;
+  categoryRecommendation: string;
+  legalPasalBasis: string;
+  summary: string;
+}
+
 // ─── Status ────────────────────────────────────────────────────────────────
 
 /** Status yang tersedia untuk laporan */
@@ -103,6 +115,9 @@ export type Report = {
 
   /** Bendera penyalahgunaan yang diisi sistem (bukti AI, hash duplikat, dll.) */
   abuseFlags?: string[];
+
+  /** Hasil analisis AI Smart Triage (risk level, urgency, basis hukum) */
+  aiTriage?: AITriageResult;
 };
 
 // ─── Modular Data Re-export ──────────────────────────────────────────────────

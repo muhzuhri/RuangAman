@@ -52,9 +52,10 @@ import {
   findDuplicateEvidenceHash,
   recordEvidenceHashes,
 } from '@/lib/antiSpam';
-import { type Report, type Evidence } from '@/lib/types';
+import { type Report, type Evidence, type AITriageResult } from '@/lib/types';
 import { saveReportToDatabase } from '@/lib/reportsService';
 import { EvidenceSecurityPanel, type ForensicFileItem } from '@/components/EvidenceSecurityPanel';
+import TriageResultPanel from '@/components/TriageResultPanel';
 
 // ─── Helpers & Config ──────────────────────────────────────────────────────────
 
@@ -245,6 +246,33 @@ export default function ReportPage() {
 
   const [errors, setErrors] = useState<ValidationErrors>({});
 
+  // ─── AI Smart Triage State ────────────────────────────────────────────────
+  const [triageResult, setTriageResult] = useState<AITriageResult | null>(null);
+  const [triageLoading, setTriageLoading] = useState(false);
+  const [triageError, setTriageError] = useState<string | null>(null);
+
+  const runAITriage = useCallback(async (text: string) => {
+    if (text.trim().length < 20) return;
+    setTriageLoading(true);
+    setTriageError(null);
+    setTriageResult(null);
+    try {
+      const res = await fetch('/api/ai-triage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kronologi: text }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: AITriageResult = await res.json();
+      setTriageResult(data);
+    } catch (err) {
+      setTriageError('Analisis AI tidak tersedia saat ini.');
+      console.warn('[AI Triage] Error:', err);
+    } finally {
+      setTriageLoading(false);
+    }
+  }, []);
+
   const stepVariants = {
     hidden: { opacity: 0, x: 24 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.35 } },
@@ -381,6 +409,10 @@ export default function ReportPage() {
 
   const goNext = () => {
     if (step === 1 && !validateStep1()) return;
+    // Run AI Triage in background when advancing from step 1
+    if (step === 1 && chronology.trim().length >= 20) {
+      runAITriage(chronology);
+    }
     if (step === 2) {
       const needsContext = pendingFiles.filter(
         (f) => f.forensicStatus !== 'Original' && f.reporterNote.trim().length < 5
@@ -505,6 +537,7 @@ export default function ReportPage() {
       receivedAt: nowIso,
       isAnonymous: true,
       abuseFlags: abuseFlags.length > 0 ? Array.from(new Set(abuseFlags)) : undefined,
+      aiTriage: triageResult || undefined,
       auditLogs: [
         {
           id: `AL-${Date.now()}`,
@@ -533,6 +566,26 @@ export default function ReportPage() {
         caseId,
         evidences.map((ev) => ev.sha256)
       );
+
+      // Pemicu Notifikasi Real-Time Satgas (Telegram) untuk kasus risiko CRITICAL & HIGH
+      if (newReport.aiTriage && ['CRITICAL', 'HIGH'].includes(newReport.aiTriage.riskLevel)) {
+        try {
+          await fetch('/api/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: newReport.anonymousToken,
+              caseId: newReport.caseId,
+              category: newReport.category,
+              chronology: newReport.chronology,
+              aiTriage: newReport.aiTriage,
+              receivedAt: newReport.receivedAt,
+            }),
+          });
+        } catch (tgErr) {
+          console.warn('[Report] Notifikasi Telegram Satgas gagal terkirim:', tgErr);
+        }
+      }
     } catch (e) {
       console.warn('Gagal menyimpan laporan:', e);
     }
@@ -752,6 +805,13 @@ export default function ReportPage() {
                       />
                       {errors.chronology && <p className="text-xs text-rose-500 font-medium">{errors.chronology}</p>}
                     </div>
+
+                    {/* AI Smart Triage Result Panel */}
+                    <TriageResultPanel
+                      isLoading={triageLoading}
+                      result={triageResult}
+                      error={triageError}
+                    />
 
                     <div className="pt-4 flex justify-end">
                       <button

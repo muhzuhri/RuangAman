@@ -2,17 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X, Sun, Moon, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import EmergencySosModal from '@/components/EmergencySosModal';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isSosModalOpen, setIsSosModalOpen] = useState(false);
 
   const { setTheme, resolvedTheme } = useTheme();
 
@@ -90,6 +92,21 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
+          {/* Tombol SOS / Darurat (Desktop) - Gaya visual krisis dengan aksen merah menyala & glowing */}
+          <button
+            onClick={() => setIsSosModalOpen(true)}
+            className="group relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-700/40 border border-red-400/60 transition-all duration-200 active:scale-95 cursor-pointer overflow-hidden animate-pulse hover:animate-none"
+            aria-label="Tombol Darurat SOS Kampus"
+            title="Kirim Sinyal Bahaya Darurat SOS ke Keamanan Kampus"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300" />
+            </span>
+            <AlertTriangle className="w-4 h-4 text-amber-200 shrink-0" />
+            <span className="font-extrabold text-white drop-shadow-sm">SOS / Darurat</span>
+          </button>
+
           {/* Theme Toggle Button */}
           {mounted && (
             <button
@@ -118,11 +135,24 @@ export default function Navbar() {
               <span>⌘</span>K
             </span>
           </button>
-          
         </div>
 
-        {/* Mobile Hamburger & Theme Button */}
+        {/* Mobile Controls (SOS + Theme + Hamburger) */}
         <div className="flex items-center gap-2 md:hidden">
+          {/* Tombol SOS Cepat (Mobile Top Bar) */}
+          <button
+            onClick={() => setIsSosModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-950/60 border border-red-400/60 active:scale-95 transition-transform cursor-pointer"
+            aria-label="Tombol Darurat SOS"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-300" />
+            </span>
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-200" />
+            <span>SOS</span>
+          </button>
+
           {mounted && (
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -153,6 +183,21 @@ export default function Navbar() {
             className="md:hidden overflow-hidden bg-[#e4e4e4] dark:bg-[#0c2b29] border-b border-stone-300 dark:border-teal-900/60"
           >
             <div className="px-6 py-5 space-y-2 flex flex-col">
+              {/* Tombol SOS Utama di Mobile Menu */}
+              <div className="pb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsSosModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white font-extrabold py-3 rounded-xl shadow-lg shadow-red-900/50 border border-red-400/50 transition-all active:scale-98 cursor-pointer"
+                >
+                  <AlertTriangle className="w-4 h-4 text-amber-300 animate-pulse" />
+                  <span>KIRIM SINYAL DARURAT (SOS)</span>
+                </button>
+              </div>
+
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
@@ -180,6 +225,12 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Emergency SOS Modal Dialog */}
+      <EmergencySosModal
+        isOpen={isSosModalOpen}
+        onClose={() => setIsSosModalOpen(false)}
+      />
     </header>
   );
 }

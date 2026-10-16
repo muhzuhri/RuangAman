@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.reports (
     received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_anonymous BOOLEAN DEFAULT true,
     abuse_flags JSONB DEFAULT '[]'::jsonb,
+    ai_triage JSONB DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -52,6 +53,14 @@ FOR UPDATE
 TO anon, authenticated
 USING (true)
 WITH CHECK (true);
+
+-- Kebijakan 4: Admin dapat menghapus laporan (DELETE)
+DROP POLICY IF EXISTS "Allow public delete of reports" ON public.reports;
+CREATE POLICY "Allow public delete of reports"
+ON public.reports
+FOR DELETE
+TO anon, authenticated
+USING (true);
 
 -- Indexing untuk pencarian cepat berdasarkan token anonim & case_id
 CREATE INDEX IF NOT EXISTS idx_reports_anonymous_token ON public.reports(anonymous_token);

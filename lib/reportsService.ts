@@ -63,6 +63,7 @@ function dbRowToReport(row: any): Report {
     receivedAt: row.received_at || row.receivedAt || new Date().toISOString(),
     isAnonymous: row.is_anonymous ?? row.isAnonymous ?? true,
     abuseFlags: Array.isArray(row.abuse_flags) ? row.abuse_flags : row.abuseFlags || undefined,
+    aiTriage: row.ai_triage || row.aiTriage || undefined,
   };
 }
 
@@ -83,6 +84,7 @@ function reportToDbRow(report: Report) {
     received_at: report.receivedAt,
     is_anonymous: report.isAnonymous,
     abuse_flags: report.abuseFlags || [],
+    ai_triage: report.aiTriage || null,
   };
 }
 
@@ -584,7 +586,7 @@ export async function deleteReportFromDatabase(
         method: 'DELETE',
         headers: {
           ...supabaseHeaders(key),
-          'Prefer': 'return=representation',
+          'Prefer': 'return=minimal',
         },
       },
       3000
@@ -593,8 +595,8 @@ export async function deleteReportFromDatabase(
     console.timeEnd('[Perf Debug] deleteReportFromDatabase');
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Gagal menghapus dari Supabase REST API:', errText);
-      return { success: false, error: errText };
+      console.error(`Gagal menghapus dari Supabase REST API [HTTP ${response.status}]:`, errText);
+      return { success: false, error: `HTTP ${response.status}: ${errText}` };
     }
 
     return { success: true };
