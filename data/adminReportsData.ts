@@ -29,6 +29,20 @@ export const MOCK_REPORTS: Report[] = [
         reporterNote: 'Tangkapan layar berisi ancaman intimidasi dari grup WhatsApp angkatan.',
         verificationStatus: 'Terverifikasi Valid',
         verificationNote: 'Timestamp berkas konsisten dengan bukti obrolan saksi pendukung.',
+        aiAnalysis: {
+          mediaType: 'IMAGE',
+          extractedText: 'Tangkapan layar obrolan WhatsApp Grup (2 Sep 2026, 13:45 WIB):\n[Pengurus]: "Kalau data riset kelompok gak lu serahin sore ini, gue pastikan rumor soal lu bakal kesebar ke satu angkatan. Lu tau kan pengaruh gue di himpunan?"\n[Pelapor]: "Tolong jangan kayak gini kak, itu hak kelompok kami..."',
+          keyFindings: [
+            'Ekstraksi OCR verbatim mengonfirmasi ancaman intimidasi verbal dan pemerasan data akademik.',
+            'Stempel waktu obrolan (13:45 WIB) bersesuaian dengan kronologi kejadian sebelum laporan dibuat.',
+            'Font obrolan WhatsApp native Android konsisten tanpa anomali perataan baris.',
+            'Metadata EXIF GPS telah disanitasi demi menjaga kerahasiaan identitas teknis pelapor.',
+          ],
+          emotionalContext: 'Nada intimidasi bernuansa relasi kuasa tinggi (senior/pengurus organisasi terhadap anggota), memicu kecemasan dan tekanan mental berat pada korban.',
+          authenticityScore: 96,
+          tamperingDetected: false,
+          forensicNotes: 'Pemeriksaan integritas biner dan visual ELA: 0 indikasi rekayasa buatan. Tangkapan layar dinilai otentik dan valid untuk pembuktian Satgas.',
+        },
       },
     ],
     messages: [
@@ -201,6 +215,20 @@ export const MOCK_REPORTS: Report[] = [
         reporterNote: 'Berkas bukti diserahkan pelapor untuk memverifikasi pencemaran nama baik berbasis foto AI Deepfake.',
         verificationStatus: 'Tervalidasi Palsu / Ditolak',
         verificationNote: 'Hasil scan forensik biner mengonfirmasi foto merupakan hasil sintesis AI (Deepfake) dan ditandai sebagai bukti tidak valid.',
+        aiAnalysis: {
+          mediaType: 'IMAGE',
+          extractedText: 'Gambar manipulasi visual menampilkan sosok korban [Disamarkan] dalam situasi yang direkayasa tanpa teks pendukung.',
+          keyFindings: [
+            'Deteksi distorsi batas rambut dan wajah: anomali blending edge khas algoritma Face-Swap / Deepfake.',
+            'Inkonsistensi sumber pencahayaan specular pada pupil mata dan bayangan leher.',
+            'Terdeteksi jejak generator difusi sintetis dengan tingkat kepastian rekayasa 98.4%.',
+            'Tidak ada metadata kamera native (EXIF hilang total akibat proses rendering software).'
+          ],
+          emotionalContext: 'Konten dirancang secara sengaja untuk merusak kehormatan dan menimbulkan trauma sosial pada korban.',
+          authenticityScore: 12,
+          tamperingDetected: true,
+          forensicNotes: 'PERINGATAN FORENSIK: Berkas terbukti MANIPULASI TINGKAT TINGGI (AI Deepfake). Bukan rekaman kamera nyata. Satgas merekomendasikan bukti ini sebagai dasar penindakan pemalsuan identitas.',
+        },
       },
     ],
     messages: [

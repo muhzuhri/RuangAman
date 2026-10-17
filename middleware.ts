@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Allow unauthenticated access to login page
-  if (pathname === '/admin/login') {
+  if (pathname === '/admin/login' || pathname.startsWith('/admin/login')) {
     return NextResponse.next();
   }
 
@@ -22,8 +22,7 @@ export function middleware(request: NextRequest) {
   const adminCookie = request.cookies.get('isAdminLoggedIn')?.value;
 
   // If no session cookie exists on server side, redirect to login page immediately
-  // avoiding unneeded HTML streaming or background fetches
-  if (!adminCookie) {
+  if (adminCookie !== 'true') {
     const loginUrl = new URL('/admin/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -32,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin', '/admin/:path*'],
 };

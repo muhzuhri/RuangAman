@@ -1,4 +1,4 @@
-// Shared types for the AmanKampus reporting system
+// Shared types for the RuangAman reporting system
 
 // ─── AI Triage ─────────────────────────────────────────────────────────────────
 
@@ -75,7 +75,20 @@ export type Evidence = {
   verificationStatus?: EvidenceVerificationStatus;
   /** Catatan penilaian keaslian bukti oleh Satgas */
   verificationNote?: string;
+  /** Hasil analisis multimodal AI forensik (Gemini Vision / Groq) */
+  aiAnalysis?: EvidenceAnalysisResult;
 };
+
+/** Hasil Analisis Berkas Multimodal AI Forensik */
+export interface EvidenceAnalysisResult {
+  mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO';
+  extractedText: string;
+  keyFindings: string[];
+  emotionalContext: string;
+  authenticityScore: number;
+  tamperingDetected: boolean;
+  forensicNotes: string;
+}
 
 // ─── Report ────────────────────────────────────────────────────────────────
 

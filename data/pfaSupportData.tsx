@@ -80,7 +80,7 @@ export const QUICK_SAFETY_ACTIONS: QuickActionStep[] = [
   {
     step: '04',
     title: 'Kirim Laporan Anonim Terenkripsi',
-    desc: 'Gunakan formulir AmanKampus untuk menyampaikan bukti dengan jaminan EXIF Stripping & SHA-256 tanpa perlu login.',
+    desc: 'Gunakan formulir RuangAman untuk menyampaikan bukti dengan jaminan EXIF Stripping & SHA-256 tanpa perlu login.',
     icon: <UserCheck className="w-5 h-5 text-emerald-500" />,
   },
 ];

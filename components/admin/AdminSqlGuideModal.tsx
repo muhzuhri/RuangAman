@@ -8,7 +8,7 @@ interface AdminSqlGuideModalProps {
   onClose: () => void;
 }
 
-const SQL_SCHEMA_SCRIPT = `-- Skema Tabel Database Laporan Satgas PPKS AmanKampus
+const SQL_SCHEMA_SCRIPT = `-- Skema Tabel Database Laporan Satgas PPKS RuangAman
 CREATE TABLE IF NOT EXISTS public.reports (
     case_id TEXT PRIMARY KEY,
     anonymous_token TEXT NOT NULL UNIQUE,
@@ -70,7 +70,7 @@ export default function AdminSqlGuideModal({ isOpen, onClose }: AdminSqlGuideMod
             </div>
             <div>
               <h3 className="font-bold text-stone-900 dark:text-stone-100 text-sm sm:text-base">
-                Skema SQL Supabase AmanKampus
+                Skema SQL Supabase RuangAman
               </h3>
               <p className="text-xs text-stone-500">Salin skema di bawah ke SQL Editor di Dasbor Supabase Anda</p>
             </div>

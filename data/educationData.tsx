@@ -52,7 +52,7 @@ export const ARTICLES_DATA: Article[] = [
     category: 'Keamanan & Privasi',
     readTime: '6 min baca',
     date: '4 Sep 2026',
-    author: 'Tim Forensik Kriptografi AmanKampus',
+    author: 'Tim Forensik Kriptografi RuangAman',
     image: '/images/1.png',
     excerpt: 'Bagaimana pembersihan otomatis EXIF metadata, enkripsi SHA-256, dan Zero-Knowledge Architecture melindungi identitas pelapor secara mutlak.',
     content: [
@@ -62,7 +62,7 @@ export const ARTICLES_DATA: Article[] = [
       },
       {
         heading: '2. Pembersihan Metadata di Browser Pelapor (Client-Side Stripping)',
-        body: 'Sebelum berkas bukti diunggah ke server AmanKampus, skrip khusus di peramban (browser) Anda memisahkan piksel gambar dari tag metadata EXIF. Identitas fisik dan lokasi geografis Anda dibersihkan secara permanen sebelum berkas keluar dari perangkat pribadi Anda.',
+        body: 'Sebelum berkas bukti diunggah ke server RuangAman, skrip khusus di peramban (browser) Anda memisahkan piksel gambar dari tag metadata EXIF. Identitas fisik dan lokasi geografis Anda dibersihkan secara permanen sebelum berkas keluar dari perangkat pribadi Anda.',
       },
       {
         heading: '3. Penjaminan Keaslian Bukti Menggunakan SHA-256 Binary Hash',
@@ -75,7 +75,7 @@ export const ARTICLES_DATA: Article[] = [
       },
       {
         heading: '4. Rekomendasi Praktis Bagi Pelapor',
-        body: 'Ambil tangkapan layar (screenshot) atau foto asli tanpa perlu mengedit isi gambar. Biarkan sistem AmanKampus yang secara otomatis mengamankan privasi serta integritas berkas Anda.',
+        body: 'Ambil tangkapan layar (screenshot) atau foto asli tanpa perlu mengedit isi gambar. Biarkan sistem RuangAman yang secara otomatis mengamankan privasi serta integritas berkas Anda.',
       }
     ],
     legalRef: 'Permendikbudristek No. 30/2021 & Standar Kriptografi ISO/IEC 27001'
@@ -93,7 +93,7 @@ export const ARTICLES_DATA: Article[] = [
     content: [
       {
         heading: '1. Tahap 1: Penerimaan & Verifikasi Awal (0 - 24 Jam)',
-        body: 'Laporan masuk melalui portal terenkripsi AmanKampus. Tim Satgas memverifikasi keutuhan kronologi awal dan keabsahan berkas bukti tanpa pernah mengakses identitas pribadi pelapor.',
+        body: 'Laporan masuk melalui portal terenkripsi RuangAman. Tim Satgas memverifikasi keutuhan kronologi awal dan keabsahan berkas bukti tanpa pernah mengakses identitas pribadi pelapor.',
       },
       {
         heading: '2. Tahap 2: Bantuan Darurat & Pendampingan Psikologis (PFA)',
@@ -157,7 +157,7 @@ export const ARTICLES_DATA: Article[] = [
     category: 'Kesehatan Mental',
     readTime: '7 min baca',
     date: '28 Agt 2026',
-    author: 'Tim Psikolog Klinis PFA AmanKampus',
+    author: 'Tim Psikolog Klinis PFA RuangAman',
     image: '/images/4.jpg',
     excerpt: 'Teknik praktis grounding 5-4-3-2-1, pengaturan napas diafragma, dan langkah pertolongan diri mandiri saat mengalami serangan cemas.',
     content: [
@@ -194,7 +194,7 @@ export const ARTICLES_DATA: Article[] = [
     category: 'Edukasi Digital',
     readTime: '6 min baca',
     date: '25 Agt 2026',
-    author: 'Tim Siber & Privasi Komunitas AmanKampus',
+    author: 'Tim Siber & Privasi Komunitas RuangAman',
     image: '/images/5.png',
     excerpt: 'Panduan langkah demi langkah mengamankan akun sosial media, 2FA, mengunci privasi nomor telepon, dan membersihkan jejak digital.',
     content: [
@@ -218,7 +218,7 @@ export const ARTICLES_DATA: Article[] = [
       },
       {
         heading: '4. Langkah Penanganan Jika Anda Menjadi Korban Doxing',
-        body: 'Dokumentasikan bukti tangkapan layar unggahan doxing, alihkan seluruh akun ke mode privat, dan laporkan segera melalui platform AmanKampus agar Satgas dapat memberikan perlindungan.',
+        body: 'Dokumentasikan bukti tangkapan layar unggahan doxing, alihkan seluruh akun ke mode privat, dan laporkan segera melalui platform RuangAman agar Satgas dapat memberikan perlindungan.',
       }
     ],
     legalRef: 'UU Perlindungan Data Pribadi No. 27/2022 & UU ITE'
@@ -267,7 +267,7 @@ export const EDU_FAQS: EduFaqItem[] = [
   },
   {
     q: 'Apakah terlapor akan mengetahui siapa yang melaporkan kasus ini?',
-    a: 'Tidak. Sistem AmanKampus menerapkan skema Zero-Knowledge Anonymous Reporting. Identitas Anda (seperti IP address, GPS, dan metadata berkas) dihapus secara permanen sebelum laporan diterima oleh Satgas.',
+    a: 'Tidak. Sistem RuangAman menerapkan skema Zero-Knowledge Anonymous Reporting. Identitas Anda (seperti IP address, GPS, dan metadata berkas) dihapus secara permanen sebelum laporan diterima oleh Satgas.',
   },
   {
     q: 'Bagaimana asas praduga tak bersalah diterapkan dalam investigasi Satgas?',

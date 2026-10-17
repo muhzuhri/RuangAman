@@ -12,38 +12,59 @@ export interface TriageResult {
   summary: string;
 }
 
+interface TriageEvidenceSummary {
+  fileName?: string;
+  forensicStatus?: string;
+  aiAnalysis?: {
+    authenticityScore?: number;
+    tamperingDetected?: boolean;
+    forensicNotes?: string;
+  };
+}
+
 interface TriageRequestBody {
   kronologi: string;
+  evidences?: TriageEvidenceSummary[];
 }
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Anda adalah sistem AI Smart Triage untuk platform pelaporan kekerasan seksual dan perundungan di lingkungan kampus Indonesia (AmanKampus). Tugas Anda adalah menganalisis teks kronologi laporan dan memberikan penilaian risiko secara objektif.
+const SYSTEM_PROMPT = `Anda adalah sistem AI Smart Triage untuk platform pelaporan Satgas PPKS (Pencegahan dan Penanganan Kekerasan Seksual & Perundungan) di lingkungan perguruan tinggi Indonesia (RuangAman).
+Tugas Anda adalah membaca teks kronologi laporan secara OBYEKTIF, KETAT, dan MENDALAM, serta memberikan penilaian risiko nyata yang akurat.
 
-INSTRUKSI KETAT:
-1. Analisis kronologi secara menyeluruh dan netral.
-2. Tentukan tingkat risiko berdasarkan kriteria berikut:
-   - CRITICAL: Ancaman fisik langsung, pelecehan seksual berat, kekerasan fisik, atau situasi darurat yang membutuhkan tindakan segera.
-   - HIGH: Perundungan serius, intimidasi berulang, pelecehan seksual verbal/non-fisik, eksploitasi, atau dampak psikologis berat.
-   - MEDIUM: Diskriminasi, pelanggaran etika akademik, intimidasi tidak langsung, atau situasi yang membutuhkan mediasi.
-   - LOW: Ketidaknyamanan sosial, konflik interpersonal ringan, atau situasi yang dapat diselesaikan secara informal.
-3. Berikan skor urgensi dari 1-100 (100 = paling mendesak).
-4. Rekomendasikan kategori kasus yang paling tepat.
-5. Kaitkan dengan dasar hukum yang relevan (Permendikbudristek No. 30 Tahun 2021 tentang PPKS, UU No. 12 Tahun 2022 tentang TPKS, atau KUHP).
-6. Tulis ringkasan singkat dalam Bahasa Indonesia yang empatis dan profesional (maksimal 2 kalimat).
+ATURAN KRITIS PENILAIAN KONTEKS:
+1. EVALUASI KONTEKS NYATA (Context Awareness):
+   - Jangan terjebak oleh kata-kata lepas. Periksa substansi narasi pelapor.
+   - JIKA teks kronologi HANYA berisi tugas akademik (kuliah/makalah/tugas praktikum/coding), teks umum, pengujian sistem/asal ketik, atau tidak memuat unsur kekerasan/pelecehan sama sekali, Anda WAJIB mengklasifikasikannya sebagai:
+     * Tingkat Risiko: "LOW" (Skor Urgensi: 10-25) atau "MEDIUM" (Skor Urgensi: 30-45).
+     * Rekomendasi Kategori: "Laporan Non-Kasus / Tinjauan Akademik" atau "Informasi Umum / Non-Darurat".
+     * JANGAN PERNAH menetapkan status "CRITICAL" untuk teks yang tidak berhubungan dengan kekerasan!
+   - HANYA tetapkan status "CRITICAL" (Skor Urgensi: 85-100) JIKA DAN HANYA JIKA terdapat:
+     * Ancaman fisik nyata terhadap keselamatan jiwa.
+     * Pemaksaan seksual berat, pemerkosaan, atau serangan fisik langsung.
+     * Situasi darurat yang membutuhkan intervensi aparat penegak hukum / Satgas seketika.
+   - Tetapkan status "HIGH" (Skor Urgensi: 60-80) untuk:
+     * Perundungan berat berkelanjutan, pemerasan, stalking intensif, atau pelecehan seksual non-fisik/daring (KSBE).
+   - Tetapkan status "MEDIUM" (Skor Urgensi: 35-55) untuk:
+     * Konflik relasi kuasa, diskriminasi akademik, atau pelanggaran etika yang membutuhkan mediasi formal.
+   - Tetapkan status "LOW" (Skor Urgensi: 10-30) untuk:
+     * Teks umum/akademik/tugas, ketidaknyamanan minor, atau sengketa personal ringan.
 
-PENTING: Respons Anda HARUS berupa JSON valid dengan struktur persis seperti ini, tanpa teks tambahan di luar JSON:
+2. PENALTI BUKTI MANIPULASI / REKAYASA AI:
+   - Jika informasi berkas bukti terlampir terindikasi "Manipulated" atau "Terindikasi AI / Re-generated / Manipulated", lakukan PENURUNAN SKOR URGENSI secara otomatis (kurangi 30-45 poin) karena keabsahan bukti diragukan/diduga manipulatif.
+
+PENTING: Respons HARUS berupa JSON murni:
 {
   "riskLevel": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
   "urgencyScore": <angka 1-100>,
   "categoryRecommendation": "<string kategori>",
-  "legalPasalBasis": "<string dasar hukum>",
-  "summary": "<string ringkasan 1-2 kalimat>"
+  "legalPasalBasis": "<string rujukan undang-undang/pasal>",
+  "summary": "<string ringkasan objektif 1-2 kalimat>"
 }`;
 
 // ─── Gemini API Call ───────────────────────────────────────────────────────────
 
-async function callGeminiAPI(kronologi: string): Promise<TriageResult> {
+async function callGeminiAPI(kronologi: string, evidences?: TriageEvidenceSummary[]): Promise<TriageResult> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -51,6 +72,14 @@ async function callGeminiAPI(kronologi: string): Promise<TriageResult> {
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  let evidenceContext = '';
+  if (evidences && evidences.length > 0) {
+    const hasManipulated = evidences.some(
+      (e) => e.forensicStatus === 'Manipulated' || e.aiAnalysis?.tamperingDetected
+    );
+    evidenceContext = `\n\nInformasi Berkas Bukti Terlampir:\n- Jumlah Berkas: ${evidences.length}\n- Indikasi Rekayasa/AI: ${hasManipulated ? 'YA (Ditemukan berkas terindikasi manipulasi / AI generated)' : 'TIDAK (Berkas tampak wajar)'}`;
+  }
 
   const requestBody = {
     systemInstruction: {
@@ -61,13 +90,13 @@ async function callGeminiAPI(kronologi: string): Promise<TriageResult> {
         role: 'user',
         parts: [
           {
-            text: `Analisis kronologi laporan berikut dan berikan penilaian risiko dalam format JSON:\n\n"${kronologi}"`,
+            text: `Analisis narasi kronologi berikut dan berikan penilaian risiko objektif dalam format JSON:\n\n"${kronologi}"${evidenceContext}`,
           },
         ],
       },
     ],
     generationConfig: {
-      temperature: 0.2,
+      temperature: 0.1,
       topK: 40,
       topP: 0.95,
       maxOutputTokens: 512,
@@ -91,10 +120,8 @@ async function callGeminiAPI(kronologi: string): Promise<TriageResult> {
   const rawText: string =
     data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
-  // Parse JSON response dari Gemini
   const parsed: TriageResult = JSON.parse(rawText);
 
-  // Validate required fields
   if (
     !parsed.riskLevel ||
     typeof parsed.urgencyScore !== 'number' ||
@@ -105,79 +132,126 @@ async function callGeminiAPI(kronologi: string): Promise<TriageResult> {
     throw new Error('Respons AI tidak memenuhi format yang diharapkan.');
   }
 
-  // Validate riskLevel value
   const validLevels: TriageRiskLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
   if (!validLevels.includes(parsed.riskLevel)) {
     throw new Error(`riskLevel tidak valid: ${parsed.riskLevel}`);
   }
 
-  // Clamp urgencyScore to 1-100
+  // Integrasi penalti otomatis jika bukti terdeteksi manipulasi
+  const hasTamperedEvidence = evidences?.some(
+    (e) => e.forensicStatus === 'Manipulated' || e.aiAnalysis?.tamperingDetected
+  );
+  if (hasTamperedEvidence) {
+    parsed.urgencyScore = Math.max(15, parsed.urgencyScore - 35);
+    if (parsed.riskLevel === 'CRITICAL') parsed.riskLevel = 'MEDIUM';
+    else if (parsed.riskLevel === 'HIGH') parsed.riskLevel = 'LOW';
+    parsed.summary += ' (Catatan: Skor urgensi diturunkan otomatis karena bukti forensik terindikasi manipulasi/AI).';
+  }
+
   parsed.urgencyScore = Math.min(100, Math.max(1, Math.round(parsed.urgencyScore)));
 
   return parsed;
 }
 
-// ─── Fallback Heuristic (ketika API Key tidak tersedia / quota habis) ──────────
+// ─── Fallback Heuristic (Obyektif & Kontekstual) ───────────────────────────────
 
-function heuristicTriage(kronologi: string): TriageResult {
+function heuristicTriage(kronologi: string, evidences?: TriageEvidenceSummary[]): TriageResult {
   const text = kronologi.toLowerCase();
 
-  const criticalKeywords = [
-    'perkosaan', 'diperkosa', 'kekerasan fisik', 'dipukul', 'ancaman pembunuhan',
-    'diancam', 'pemerasan fisik', 'dipaksa secara fisik', 'diserang',
+  // 1. Cek apakah teks kronologi adalah materi akademik / tugas kuliah / non-kasus
+  const academicKeywords = [
+    'tugas', 'makalah', 'kuliah', 'praktikum', 'coding', 'algoritma',
+    'soal', 'ujian', 'uts', 'uas', 'skripsi', 'modul', 'latihan',
+    'html', 'javascript', 'python', 'antigravity', 'react', 'program',
+    'referensi', 'jurnal', 'materi', 'bab 1', 'bab 2', 'pendahuluan'
   ];
+  const isAcademicOrTest = academicKeywords.some((k) => text.includes(k));
+
+  // 2. Keyword kekerasan fisik nyata / bahaya seketika (Hanya ini yang boleh CRITICAL)
+  const realCriticalKeywords = [
+    'perkosaan', 'diperkosa', 'pemerkosaan', 'diserang secara fisik',
+    'ancaman pembunuhan', 'dibacok', 'dipukul berdarah', 'dicekik',
+    'disekap', 'dipaksa bersetubuh'
+  ];
+
+  // 3. Keyword pelanggaran serius non-fisik / KSBE / intimidasi
   const highKeywords = [
-    'pelecehan seksual', 'dilecehkan', 'dipegang', 'diraba', 'foto bugil',
-    'intimidasi', 'mengancam', 'bullying berat', 'perundungan', 'stalking',
-    'deepfake', 'konten intim', 'cyberbullying',
+    'pelecehan seksual', 'dilecehkan', 'dipegang paksa', 'diraba paksa',
+    'foto bugil', 'disebar luaskan', 'intimidasi', 'mengancam menyebarkan',
+    'stalking', 'deepfake', 'konten intim', 'cyberbullying berat'
   ];
+
+  // 4. Keyword diskriminasi / etika
   const mediumKeywords = [
-    'diskriminasi', 'diperlakukan tidak adil', 'diejek', 'dipermalukan',
-    'pelanggaran etika', 'tugas di luar', 'nilai diturunkan', 'tidak adil',
+    'diskriminasi', 'diperlakukan tidak adil', 'diejek', 'dipermalukan di depan kelas',
+    'pelanggaran etika dosen', 'ancaman nilai diturunkan'
   ];
 
   let riskLevel: TriageRiskLevel = 'LOW';
   let urgencyScore = 20;
 
-  if (criticalKeywords.some((k) => text.includes(k))) {
+  // Jika teks tugas kuliah/akademik dan tidak ada kata pemerkosaan/serangan nyata -> LOW
+  if (isAcademicOrTest && !realCriticalKeywords.some((k) => text.includes(k))) {
+    riskLevel = 'LOW';
+    urgencyScore = 18;
+    return {
+      riskLevel,
+      urgencyScore,
+      categoryRecommendation: 'Laporan Non-Kasus / Tinjauan Akademik',
+      legalPasalBasis: 'Permendikbudristek No. 30 Tahun 2021 (Verifikasi Awal Substansi Kasus)',
+      summary: 'Kronologi yang disampaikan terindikasi memuat teks materi akademik atau latihan non-kekerasan. Tidak terdeteksi indikasi ancaman fisik atau bahaya darurat.',
+    };
+  }
+
+  if (realCriticalKeywords.some((k) => text.includes(k))) {
     riskLevel = 'CRITICAL';
-    urgencyScore = 90 + Math.floor(Math.random() * 10);
+    urgencyScore = 92;
   } else if (highKeywords.some((k) => text.includes(k))) {
     riskLevel = 'HIGH';
-    urgencyScore = 65 + Math.floor(Math.random() * 15);
+    urgencyScore = 72;
   } else if (mediumKeywords.some((k) => text.includes(k))) {
     riskLevel = 'MEDIUM';
-    urgencyScore = 40 + Math.floor(Math.random() * 20);
+    urgencyScore = 48;
   } else {
     riskLevel = 'LOW';
-    urgencyScore = 15 + Math.floor(Math.random() * 20);
+    urgencyScore = 25;
+  }
+
+  // Cek Penalti Bukti Manipulasi AI
+  const hasTamperedEvidence = evidences?.some(
+    (e) => e.forensicStatus === 'Manipulated' || e.aiAnalysis?.tamperingDetected
+  );
+  if (hasTamperedEvidence) {
+    urgencyScore = Math.max(15, urgencyScore - 40);
+    if (riskLevel === 'CRITICAL') riskLevel = 'MEDIUM';
+    else if (riskLevel === 'HIGH') riskLevel = 'LOW';
   }
 
   const categoryMap: Record<TriageRiskLevel, string> = {
-    CRITICAL: 'Kekerasan Seksual & Pelecehan',
-    HIGH: 'Perundungan & Intimidasi Serius',
-    MEDIUM: 'Diskriminasi & Pelanggaran Etika',
-    LOW: 'Ketidaknyamanan & Konflik Interpersonal',
+    CRITICAL: 'Kekerasan Seksual & Bahaya Fisik Darurat',
+    HIGH: 'Perundungan Siber & Pelecehan Non-Fisik',
+    MEDIUM: 'Diskriminasi & Pelanggaran Etika Kampus',
+    LOW: 'Keluhan Non-Kritis & Konflik Interpersonal',
   };
 
   const legalMap: Record<TriageRiskLevel, string> = {
     CRITICAL: 'Pasal 5 & 6 UU No. 12 Tahun 2022 tentang Tindak Pidana Kekerasan Seksual (TPKS)',
-    HIGH:
-      'Pasal 5 UU TPKS & Pasal 6 Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
-    MEDIUM:
-      'Pasal 9 & 10 Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual (PPKS)',
+    HIGH: 'Pasal 14 UU TPKS (KSBE) & Pasal 5 Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
+    MEDIUM: 'Pasal 9 & 10 Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual',
     LOW: 'Pasal 9 Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
   };
 
   const summaryMap: Record<TriageRiskLevel, string> = {
     CRITICAL:
-      'Laporan mengindikasikan situasi kritis yang memerlukan penanganan segera oleh Satgas PPKS dan pihak berwenang. Korban disarankan untuk segera mencari perlindungan dan mendokumentasikan bukti.',
+      'Laporan memuat indikasi bahaya fisik nyata yang memerlukan tindakan darurat langsung oleh Satgas PPKS.' +
+      (hasTamperedEvidence ? ' (Skor urgensi diturunkan karena bukti terdeteksi manipulasi).' : ''),
     HIGH:
-      'Laporan menunjukkan indikasi pelanggaran serius yang memerlukan investigasi prioritas. Satgas PPKS perlu segera menghubungi pelapor untuk pendampingan lanjutan.',
+      'Laporan menunjukkan pola intimidasi atau pelecehan berbasis elektronik yang membutuhkan pendampingan prioritas.' +
+      (hasTamperedEvidence ? ' (Skor urgensi disesuaikan karena keabsahan bukti diragukan).' : ''),
     MEDIUM:
-      'Laporan mengindikasikan pelanggaran etika atau diskriminasi yang perlu ditangani melalui jalur mediasi formal. Satgas akan mengevaluasi dan merespons dalam 3 hari kerja.',
+      'Laporan mengindikasikan pelanggaran etika atau relasi kuasa yang disarankan untuk diklarifikasi melalui mediasi Satgas.',
     LOW:
-      'Laporan diterima dan akan ditinjau oleh tim Satgas. Jika diperlukan, mediasi informal akan direkomendasikan sebagai langkah penyelesaian pertama.',
+      'Laporan tidak menunjukkan tanda kekerasan darurat. Ditinjau sebagai informasi umum atau klarifikasi informal.',
   };
 
   return {
@@ -215,10 +289,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let usedFallback = false;
 
     try {
-      result = await callGeminiAPI(kronologi);
+      result = await callGeminiAPI(kronologi, body.evidences);
     } catch (aiError) {
       console.warn('[AI Triage] Gemini API gagal, menggunakan analisis heuristik:', aiError);
-      result = heuristicTriage(kronologi);
+      result = heuristicTriage(kronologi, body.evidences);
       usedFallback = true;
     }
 

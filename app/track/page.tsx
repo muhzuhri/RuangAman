@@ -212,7 +212,7 @@ export default function TrackPage() {
                 </div>
                 <h4 className="font-bold text-stone-900 dark:text-stone-50 text-lg">Laporan Tidak Ditemukan</h4>
                 <p className="text-stone-600 dark:text-stone-400 text-sm leading-relaxed">
-                  Token / Case ID <code className="text-rose-600 dark:text-rose-400 font-mono font-bold bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded">{tokenInput.toUpperCase()}</code> tidak terdaftar pada sistem AmanKampus. Silakan periksa kembali penulisan Token / Case ID atau buat laporan baru.
+                  Token / Case ID <code className="text-rose-600 dark:text-rose-400 font-mono font-bold bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded">{tokenInput.toUpperCase()}</code> tidak terdaftar pada sistem RuangAman. Silakan periksa kembali penulisan Token / Case ID atau buat laporan baru.
                 </p>
               </motion.div>
             )}
@@ -329,7 +329,7 @@ export default function TrackPage() {
                     {/* System Greeting */}
                     <div className="bg-stone-50 dark:bg-[#14302c]/60 border border-stone-200 dark:border-stone-600 rounded-xl p-4 text-stone-700 dark:text-stone-300 text-sm">
                       <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-xs font-mono font-semibold mb-2">
-                        <Sparkles className="w-3.5 h-3.5" /> SISTEM AMANKAMPUS
+                        <Sparkles className="w-3.5 h-3.5" /> SISTEM RUANGAMAN
                       </div>
                       <p>Laporan Anda dengan token <strong className="text-stone-900 dark:text-stone-50 font-mono">{foundReport.anonymousToken}</strong> telah tercatat. Identitas Anda tidak disimpan. Satgas akan meninjau laporan dan memberikan instruksi melalui kotak masuk ini.</p>
                     </div>

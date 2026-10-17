@@ -52,7 +52,7 @@ export default function TrustAndSecuritySection() {
         </motion.h2>
 
         <motion.p variants={childVariants} className="text-stone-600 dark:text-stone-400 text-base md:text-lg leading-relaxed">
-          AmanKampus dibangun di atas fondasi <strong className="text-teal-800 dark:text-teal-400 font-semibold">zero-knowledge architecture</strong> dan kriptografi SHA-256. Privasi korban dilindungi, bukti tidak mudah direkayasa.
+          RuangAman dibangun di atas fondasi <strong className="text-teal-800 dark:text-teal-400 font-semibold">zero-knowledge architecture</strong> dan kriptografi SHA-256. Privasi korban dilindungi, bukti tidak mudah direkayasa.
         </motion.p>
       </motion.div>
 
@@ -73,7 +73,7 @@ export default function TrustAndSecuritySection() {
               Bukan tempat persekusi publik, melainkan portal resmi penanganan kasus
             </h3>
             <p className="text-stone-600 dark:text-stone-400 text-sm md:text-base leading-relaxed">
-              Banyak korban enggan melapor karena takut identitasnya bocor, dan banyak instansi ragu karena takut aduan dijadikan alat saling menjatuhkan. <strong className="text-stone-800 dark:text-stone-200">AmanKampus memecahkan kedua masalah tersebut sekaligus:</strong>
+              Banyak korban enggan melapor karena takut identitasnya bocor, dan banyak instansi ragu karena takut aduan dijadikan alat saling menjatuhkan. <strong className="text-stone-800 dark:text-stone-200">RuangAman memecahkan kedua masalah tersebut sekaligus:</strong>
             </p>
             <ul className="space-y-2 text-xs md:text-sm text-stone-600 dark:text-stone-400">
               <li className="flex items-center gap-2.5">

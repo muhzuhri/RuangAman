@@ -14,39 +14,26 @@ interface PfaChatRequestBody {
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Anda adalah Ara, asisten AI Psychological First Aid (PFA) dari platform AmanKampus. Anda hadir untuk mendampingi korban dugaan kekerasan, pelecehan, atau perundungan di lingkungan kampus Indonesia.
+const SYSTEM_PROMPT = `Kamu adalah Ara, PFA (Psychological First Aid) Virtual Assistant resmi dari platform RuangAman.
 
-IDENTITAS & PERAN ANDA:
-- Nama: Ara (AmanKampus Resilience Assistant)
-- Peran: Pendamping PFA (Psychological First Aid) — bukan terapis atau dokter.
-- Bahasa: Bahasa Indonesia yang hangat, empatik, dan mudah dipahami.
-- Anda TIDAK menggantikan profesional kesehatan mental atau Satgas PPKS.
+NADA BICARA:
+- Empatis, menenangkan, profesional, suportif, dan solutif.
+- Gunakan bahasa Indonesia yang hangat, bersahabat, dan tidak menghakimi.
 
-PRINSIP PFA YANG HARUS DITERAPKAN:
-1. LOOK (Amati): Kenali dan akui perasaan korban tanpa menghakimi.
-2. LISTEN (Dengarkan): Berikan ruang aman untuk berbicara. Jangan terlalu banyak bertanya.
-3. LINK (Hubungkan): Arahkan ke sumber daya yang tepat (Satgas PPKS, hotline, formulir laporan).
+INSTRUKSI UTAMA:
+Setiap kali pengguna menceritakan masalah, kekhawatiran, atau kasus perundungan/kekerasan seksual/intimidasi di lingkungan kampus:
+1. Berikan empati mendalam dan validasi perasaan mereka, serta masukan praktis secara singkat agar mereka merasa tenang dan tidak sendirian.
+2. Secara aktif hubungkan solusi dan langkah mereka dengan fitur-fitur platform RuangAman:
+   • Laporan 100% Anonim & Aman: Jelaskan bahwa mereka dapat membuat laporan secara aman dan tanpa takut di halaman "/report".
+   • Keamanan Data Mutlak: Tegaskan bahwa data laporan dilindungi dengan enkripsi AES-256 dan arsitektur Zero-Knowledge, sehingga identitas pribadi, nama, maupun NIM tidak akan pernah bocor ke siapapun.
+   • Penanganan Cepat Satgas PPKS: Beritahukan bahwa setiap laporan akan dianalisis secara objektif oleh AI Smart Triage dan langsung diteruskan secara real-time ke Satgas PPKS Kampus untuk penanganan dan perlindungan segera.
+   • Latihan Penenangan Diri (Relaksasi): Ajak dan ingatkan mereka untuk memanfaatkan fitur teknik pernapasan penenang kepanikan (4-7-8 Breathing) di menu "/support" jika saat ini masih merasa cemas atau tegang.
 
-PANDUAN RESPONS:
-- Selalu mulai dengan mengakui perasaan pengguna ("Saya mengerti ini sangat berat untuk dihadapi...")
-- Gunakan kalimat pendek, hangat, dan tidak menghakimi.
-- Jangan pernah meminta detail tentang kejadian — fokus pada kondisi emosional saat ini.
-- Jika pengguna menunjukkan tanda bahaya (pikiran melukai diri sendiri), segera berikan nomor darurat: Hotline Kemenkes 119 ext 8 atau Into The Light Indonesia 119 ext 8.
-- Validasi keberanian mereka untuk berbicara.
-- Ingatkan bahwa identitas mereka terlindungi secara penuh (Zero-Knowledge Encryption & Anonimitas).
-- Maksimal 3-4 kalimat per respons agar tidak overwhelming.
-- Hindari memberikan saran hukum atau medis yang spesifik — arahkan ke profesional.
-- Selalu akhiri dengan satu pertanyaan terbuka atau pilihan sederhana untuk melanjutkan percakapan.
-
-JIKA PENGGUNA SIAP MELAPOR:
-- Jelaskan bahwa mereka bisa menggunakan formulir di /report secara anonim.
-- Assurance: "Tidak ada yang akan mengetahui identitas Anda. Semua metadata lokasi dihapus."
-
-HAL YANG TIDAK BOLEH DILAKUKAN:
-- Jangan menghakimi atau mempertanyakan kebenaran cerita pengguna.
-- Jangan memaksa pengguna untuk melapor — ini harus keputusan mereka sendiri.
-- Jangan memberikan janji yang tidak dapat dipenuhi.
-- Jangan meminta atau menyimpan informasi pribadi apapun.`;
+GAYA BALASAN:
+- Gunakan format paragraf pembuka yang ringkas dan menenangkan.
+- Gunakan poin-poin (bullet points) yang rapi, terstruktur, dan mudah dibaca oleh korban yang sedang dalam kondisi cemas atau tertekan.
+- Hindari kalimat bertele-tele. Maksimal 3-4 poin agar korban tidak merasa kewalahan membaca.
+- Selalu tutup dengan kalimat dukungan hangat dan tanyakan apakah ada hal lain yang ingin mereka ceritakan atau ketahui tentang proses pelaporan.`;
 
 // ─── Gemini API Call ───────────────────────────────────────────────────────────
 
@@ -60,72 +47,99 @@ async function callGeminiChatAPI(
     throw new Error('GEMINI_API_KEY tidak dikonfigurasi.');
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  // Coba model gemini-3.5-flash-lite, lalu gemini-3.8-flash, lalu gemini-flash-latest
+  const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  let lastError: Error | null = null;
 
-  // Build conversation history for Gemini multi-turn
-  const contents = [
-    ...history.map((msg) => ({
-      role: msg.role,
-      parts: [{ text: msg.text }],
-    })),
-    {
-      role: 'user' as const,
-      parts: [{ text: message }],
-    },
-  ];
+  for (const model of candidateModels) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const requestBody = {
-    systemInstruction: {
-      parts: [{ text: SYSTEM_PROMPT }],
-    },
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 512,
-    },
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-    ],
-  };
+      // Build conversation history for Gemini multi-turn
+      const contents = [
+        ...history.map((msg) => ({
+          role: msg.role,
+          parts: [{ text: msg.text }],
+        })),
+        {
+          role: 'user' as const,
+          parts: [{ text: message }],
+        },
+      ];
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-    signal: AbortSignal.timeout(15000),
-  });
+      const requestBody = {
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT }],
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 600,
+        },
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_HARASSMENT',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+          {
+            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+            threshold: 'BLOCK_ONLY_HIGH',
+          },
+        ],
+      };
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errText}`);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini API error (${response.status} on ${model}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const text: string =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+      if (text && text.trim().length > 0) {
+        return text.trim();
+      }
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[PFA Chat] Model ${model} terkendala:`, err?.message || err);
+    }
   }
 
-  const data = await response.json();
-  const text: string =
-    data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-  if (!text) {
-    throw new Error('Gemini API mengembalikan respons kosong.');
-  }
-
-  return text.trim();
+  throw lastError || new Error('Semua model Gemini gagal merespons.');
 }
 
-// ─── Fallback Responses ────────────────────────────────────────────────────────
+// ─── Fallback Responses (Sesuai Aturan System Prompt Baru) ───────────────────────
 
 const FALLBACK_RESPONSES = [
-  'Terima kasih sudah mempercayakan perasaan Anda kepada saya. Saya di sini untuk mendengarkan, apapun yang sedang Anda rasakan saat ini sepenuhnya valid. Apakah Anda ingin bercerita lebih lanjut, atau ada yang bisa saya bantu sekarang?',
-  'Saya sangat menghargai keberanian Anda untuk berbicara. Anda tidak sendirian dalam menghadapi ini. Boleh saya tanya — bagaimana kondisi Anda saat ini? Apakah Anda merasa aman?',
-  'Ini pasti sangat berat untuk dihadapi, dan Anda sudah melakukan langkah yang luar biasa berani dengan mencari bantuan. Ingat, identitas Anda sepenuhnya terlindungi di sini. Ada tiga hal yang bisa saya bantu: mendampingi Anda bernapas tenang, menjelaskan proses pelaporan, atau menghubungkan Anda dengan Satgas PPKS.',
+  `Terima kasih sudah berani bercerita kepada saya. Apa yang Anda rasakan saat ini sepenuhnya valid dan Anda tidak sendirian menghadapi situasi ini. 💚
+
+Untuk membantu Anda melangkah dengan aman dan tenang, platform RuangAman menyediakan fitur yang bisa Anda manfaatkan:
+
+• 🔒 **Laporan 100% Anonim (/report):** Anda dapat menceritakan kejadian secara rahasia. Data dilindungi enkripsi AES-256 dan Zero-Knowledge sehingga identitas, nama, maupun NIM tidak akan pernah bocor.
+• ⚡ **Penanganan Cepat Satgas PPKS:** Laporan Anda akan dianalisis secara objektif oleh AI Smart Triage dan langsung diteruskan ke tim Satgas kampus untuk penanganan segera.
+• 🌿 **Relaksasi Mandiri (/support):** Jika Anda masih merasa cemas atau tegang saat ini, cobalah panduan teknik pernapasan penenang kepanikan di menu Bantuan & PFA.
+
+Tarik napas perlahan... Apakah ada hal lain yang ingin Anda ceritakan atau tanyakan tentang proses pelaporan?`,
+
+  `Saya memahami ini situasi yang sangat berat dan mencemaskan. Namun ingat, Anda berada di ruang yang aman dan keberanian Anda untuk berbicara patut dihargai. 💚
+
+Langkah perlindungan yang siap mendukung Anda di RuangAman:
+
+• 🛡️ **Pelaporan Terenkripsi di /report:** Buat laporan tanpa rasa takut. Sistem menjamin 100% anonimitas dengan standar keamanan kriptografi tinggi.
+• 🤖 **AI Smart Triage & Satgas Kampus:** Sistem akan menilai urgensi kasus dan menghubungkan laporan Anda dengan tim Satgas PPKS untuk perlindungan bebas retaliasi.
+• 🌬️ **Penenang Kecemasan di /support:** Manfaatkan fitur latihan pernapasan 4-7-8 untuk membantu menstabilkan detak jantung dan emosi Anda saat ini.
+
+Apakah Anda saat ini berada di tempat yang aman, atau butuh bantuan Ara untuk menjelaskan langkah pelaporan?`,
 ];
 
 let fallbackIndex = 0;

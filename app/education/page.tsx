@@ -79,7 +79,7 @@ export default function EducationPage() {
           <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed font-medium">
             Edukasi komprehensif mengenai batasan hukum, bentuk kekerasan
             digital/akademik, serta jaminan perlindungan mutlak bagi seluruh
-            civitas akademika AmanKampus.
+            civitas akademika RuangAman.
           </p>
         </div>
 

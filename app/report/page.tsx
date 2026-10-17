@@ -567,24 +567,26 @@ export default function ReportPage() {
         evidences.map((ev) => ev.sha256)
       );
 
-      // Pemicu Notifikasi Real-Time Satgas (Telegram) untuk kasus risiko CRITICAL & HIGH
-      if (newReport.aiTriage && ['CRITICAL', 'HIGH'].includes(newReport.aiTriage.riskLevel)) {
-        try {
-          await fetch('/api/report', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              token: newReport.anonymousToken,
-              caseId: newReport.caseId,
-              category: newReport.category,
-              chronology: newReport.chronology,
-              aiTriage: newReport.aiTriage,
-              receivedAt: newReport.receivedAt,
-            }),
-          });
-        } catch (tgErr) {
-          console.warn('[Report] Notifikasi Telegram Satgas gagal terkirim:', tgErr);
-        }
+      // Pemicu Notifikasi Real-Time Satgas (Telegram) Lengkap untuk Setiap Laporan
+      try {
+        await fetch('/api/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: newReport.anonymousToken,
+            caseId: newReport.caseId,
+            category: newReport.category,
+            incidentTime: newReport.incidentTime,
+            involvedParties: newReport.involvedParties,
+            targetFaculty: newReport.targetFaculty,
+            chronology: newReport.chronology,
+            evidencesCount: newReport.evidences?.length || 0,
+            aiTriage: newReport.aiTriage,
+            receivedAt: newReport.receivedAt,
+          }),
+        });
+      } catch (tgErr) {
+        console.warn('[Report] Notifikasi Telegram Satgas gagal terkirim:', tgErr);
       }
     } catch (e) {
       console.warn('Gagal menyimpan laporan:', e);

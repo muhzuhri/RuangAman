@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AmanKampus - Platform Keamanan & Pelaporan Anonim Kampus",
+  title: "RuangAman - Platform Keamanan & Pelaporan Anonim Kampus",
   description: "Sistem pelaporan terenkripsi end-to-end untuk menciptakan lingkungan kampus yang aman, inklusif, dan bebas perundungan.",
 };
 
@@ -23,6 +23,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CommandPalette } from "@/components/CommandPalette";
 import PageBackdrop from "@/components/PageBackdrop";
 import IntroAnimation from "@/components/IntroAnimation";
+import FloatingPfaChatbot from "@/components/pfa/FloatingPfaChatbot";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -42,6 +43,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </div>
           <Footer />
+
+          {/* Floating PFA Chatbot Widget (Pojok Kanan Bawah di Semua Halaman Publik) */}
+          <FloatingPfaChatbot />
         </ThemeProvider>
       </body>
     </html>

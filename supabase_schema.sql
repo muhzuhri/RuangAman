@@ -1,5 +1,5 @@
 -- ============================================================================
--- AMANKAMPUS SUPABASE DATABASE SCHEMA SETUP & SEED DATA
+-- RUANGAMAN SUPABASE DATABASE SCHEMA SETUP & SEED DATA
 -- Jalankan skrip ini di Supabase Dashboard -> SQL Editor -> Run
 -- ============================================================================
 

@@ -41,6 +41,25 @@ export interface HighRiskReportPayload {
   receivedAt?: string;
 }
 
+export interface FullReportPayload {
+  token: string;
+  caseId?: string;
+  category: string;
+  incidentTime?: string;
+  involvedParties?: string;
+  targetFaculty?: string;
+  chronology: string;
+  evidencesCount?: number;
+  aiTriage?: {
+    riskLevel?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
+    urgencyScore?: number;
+    summary?: string;
+    legalPasalBasis?: string;
+    categoryRecommendation?: string;
+  };
+  receivedAt?: string;
+}
+
 /**
  * Membaca konfigurasi Telegram dari environment variables
  */
@@ -259,7 +278,7 @@ export async function sendTelegramSOSAlert(payload: SOSAlertPayload): Promise<Te
     `2. Hubungi posko keamanan kampus sektor terkait untuk bersiaga penuh.`,
     `3. Utamakan perlindungan keselamatan pelapor dan sterilisasi area.`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🛡️ <i>AmanKampus Real-Time Crisis Dispatcher</i>`,
+    `🛡️ <i>RuangAman Real-Time Crisis Dispatcher</i>`,
   ].filter(Boolean).join('\n');
 
   return sendTelegramMessage(message, { disableWebPagePreview: false });
@@ -310,8 +329,103 @@ export async function sendTelegramHighRiskReportNotification(
     ``,
     `📌 <i>Instruksi: Segera buka Dasbor Admin untuk memverifikasi berkas bukti terenkripsi dan memulai prosedur pendampingan korban.</i>`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🛡️ <i>AmanKampus AI Triage System</i>`,
+    `🛡️ <i>RuangAman AI Triage System</i>`,
   ].join('\n');
+
+  return sendTelegramMessage(message, { disableWebPagePreview: true });
+}
+
+/**
+ * Pemicu: Kirim Notifikasi Lengkap Setiap Laporan Kasus Baru Masuk ke Telegram Satgas
+ */
+export async function sendTelegramFullReportNotification(
+  payload: FullReportPayload
+): Promise<TelegramSendResult> {
+  const waktuFormatted = formatToIndonesianTime(payload.receivedAt);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const adminUrl = `${baseUrl.replace(/\/$/, '')}/admin`;
+
+  const riskLevel = payload.aiTriage?.riskLevel || 'UNASSESSED';
+  let badgeIcon = '📋';
+  let riskBadge = '🟢 RENDAH';
+
+  if (riskLevel === 'CRITICAL') {
+    badgeIcon = '🚨';
+    riskBadge = '🔴 KRITIS (CRITICAL)';
+  } else if (riskLevel === 'HIGH') {
+    badgeIcon = '⚠️';
+    riskBadge = '🟠 TINGGI (HIGH)';
+  } else if (riskLevel === 'MEDIUM') {
+    badgeIcon = '🟡';
+    riskBadge = '🟡 MENENGAH (MEDIUM)';
+  } else if (riskLevel === 'LOW') {
+    badgeIcon = 'ℹ️';
+    riskBadge = '🟢 RENDAH (LOW)';
+  }
+
+  const urgencyText =
+    typeof payload.aiTriage?.urgencyScore === 'number'
+      ? `Skor Urgensi AI: <b>${payload.aiTriage.urgencyScore}/100</b>`
+      : 'Urgensi Terverifikasi';
+
+  const categoryText = escapeTelegramHtml(payload.category || 'Laporan Pengaduan');
+  const incidentTimeText = escapeTelegramHtml(payload.incidentTime || 'Tidak disebutkan');
+  const targetFacultyText = escapeTelegramHtml(payload.targetFaculty || 'Lingkungan Kampus');
+  const involvedPartiesText = escapeTelegramHtml(payload.involvedParties || 'Tidak disebutkan (Anonim)');
+
+  // Format kronologi lengkap (maksimal 2000 karakter agar tidak melebihi batas Telegram)
+  const fullChronology = payload.chronology?.trim() || 'Tidak ada uraian kronologi.';
+  const displayedChronology =
+    fullChronology.length > 2000
+      ? fullChronology.substring(0, 2000) + '... (selengkapnya di Dasbor Admin)'
+      : fullChronology;
+
+  const count = payload.evidencesCount ?? 0;
+  const evidencesText =
+    count > 0
+      ? `📎 <b>${count} Berkas Bukti Terlampir</b> (Tervalidasi SHA-256 & EXIF Stripped)`
+      : '📎 <i>Tidak ada berkas bukti lampiran.</i>';
+
+  const aiSection = payload.aiTriage
+    ? [
+        ``,
+        `🤖 <b>Analisis AI Smart Triage:</b>`,
+        `• Tingkat Risiko: <b>${riskBadge}</b> (${urgencyText})`,
+        payload.aiTriage.summary ? `• Ringkasan Kasus: <i>"${escapeTelegramHtml(payload.aiTriage.summary)}"</i>` : '',
+        payload.aiTriage.legalPasalBasis
+          ? `• Rujukan Dasar Regulasi: <code>${escapeTelegramHtml(payload.aiTriage.legalPasalBasis)}</code>`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : '';
+
+  const message = [
+    `${badgeIcon} <b>PEMBERITAHUAN LAPORAN KASUS BARU MASUK</b> ${badgeIcon}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `<b>Token Kasus Anonim:</b> <code>${escapeTelegramHtml(payload.token)}</code>`,
+    payload.caseId ? `<b>ID Berkas Kasus:</b> <code>${escapeTelegramHtml(payload.caseId)}</code>` : '',
+    `<b>Waktu Diterima:</b> ${waktuFormatted}`,
+    `<b>Kategori Kasus:</b> <b>${categoryText}</b>`,
+    `<b>Waktu Kejadian:</b> ${incidentTimeText}`,
+    `<b>Fakultas / Lokasi Terkait:</b> ${targetFacultyText}`,
+    `<b>Pihak Terkait / Terlapor:</b> ${involvedPartiesText}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `📝 <b>KRONOLOGI LENGKAP KEJADIAN:</b>`,
+    `<i>"${escapeTelegramHtml(displayedChronology)}"</i>`,
+    ``,
+    `📁 <b>Status Lampiran Bukti:</b>`,
+    evidencesText,
+    aiSection,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `🔗 <b>Akses Dasbor Admin Satgas PPKS:</b>`,
+    `<a href="${adminUrl}">👉 Buka & Tindaklanjuti Kasus di Dasbor Satgas</a>`,
+    `URL: ${adminUrl}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `🛡️ <i>RuangAman Crisis Dispatcher System</i>`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   return sendTelegramMessage(message, { disableWebPagePreview: true });
 }

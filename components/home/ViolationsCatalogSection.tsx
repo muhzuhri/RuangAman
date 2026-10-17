@@ -127,7 +127,7 @@ export default function ViolationsCatalogSection() {
                 className={`absolute -left-[19px] md:-left-[31px] top-6 w-3 h-3 rounded-full border-2 transition-all duration-300 ${
                   isExpanded
                     ? 'bg-teal-800 border-teal-700 ring-4 ring-teal-800/15'
-                    : 'bg-stone-300 dark:bg-stone-600 border-stone-100 dark:border-stone-900 group-hover:bg-teal-600'
+                    : 'bg-stone-300 dark:bg-[stone-600] border-stone-100 dark:border-stone-900 group-hover:bg-teal-600'
                 }`}
               />
 
@@ -136,8 +136,8 @@ export default function ViolationsCatalogSection() {
                 onClick={() => setExpandedId(isExpanded ? null : item.id)}
                 className={`py-5 px-5 md:px-7 rounded-2xl transition-all duration-300 cursor-pointer relative overflow-hidden ${
                   isExpanded
-                    ? 'bg-[#f4f4f4] dark:bg-stone-700 border-l-4 border-l-teal-800 shadow-sm border border-stone-300 dark:border-stone-600'
-                    : 'bg-[#f0f0f0]/80 dark:bg-stone-800/50 hover:bg-[#f7f7f7] dark:hover:bg-stone-700 border border-transparent hover:border-stone-300 dark:hover:border-stone-600 border-l-2 border-l-transparent hover:border-l-teal-800'
+                    ? 'bg-[#f4f4f4] dark:bg-[#163432] border-l-4 border-l-teal-800 shadow-sm border border-stone-300 dark:border-stone-600'
+                    : 'bg-[#f0f0f0]/80 dark:bg-[#163432] hover:bg-[#f7f7f7] dark:hover:bg-[#163432] border border-transparent hover:border-stone-300 dark:hover:border-stone-600 border-l-2 border-l-transparent hover:border-l-teal-800'
                 }`}
               >
                 {/* Header Row */}

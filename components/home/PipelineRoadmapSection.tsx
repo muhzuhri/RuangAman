@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldAlert,
@@ -14,10 +14,11 @@ import {
   History,
   Sparkles,
   ChevronDown,
+  ChevronUp,
   CheckCircle2,
 } from 'lucide-react';
 
-const PIPELINE_STEPS = [
+export const PIPELINE_STEPS = [
   {
     step: 'STEP 01',
     date: 'Inisiasi Pelapor',
@@ -101,11 +102,119 @@ const PIPELINE_STEPS = [
   },
 ];
 
-export default function PipelineRoadmapSection() {
-  const [openStep, setOpenStep] = useState<number | null>(null);
+/**
+ * Generate Serpentine Circuit Snake Path with rounded 90-degree corners
+ * Matches the user-provided diagram:
+ * Card 1 (Right) -> horizontal cross -> Card 2 (Left) -> horizontal cross -> Card 3 (Right) -> etc.
+ */
+function generateSerpentinePath(count: number, startOnRight: boolean = true): string {
+  if (count <= 1) return '';
+  const x_left = 23;
+  const x_right = 77;
+  const r = 6; // Corner radius in SVG viewBox coordinates
+  const getX = (i: number) =>
+    startOnRight ? (i % 2 === 0 ? x_right : x_left) : i % 2 === 0 ? x_left : x_right;
 
-  const toggleStep = (idx: number) => {
-    setOpenStep((prev) => (prev === idx ? null : idx));
+  const startX = getX(0);
+  let d = `M ${startX} 0`;
+
+  for (let i = 0; i < count - 1; i++) {
+    const curX = getX(i);
+    const nextX = getX(i + 1);
+    const y_mid = (i + 1) * 100;
+    const goingLeft = nextX < curX;
+
+    // 1. Line straight down through current card up to the turn
+    d += ` L ${curX} ${y_mid - r}`;
+
+    // 2. First 90-degree rounded turn towards the opposite column
+    const turn1TargetX = goingLeft ? curX - r : curX + r;
+    d += ` Q ${curX} ${y_mid}, ${turn1TargetX} ${y_mid}`;
+
+    // 3. Horizontal span straight across to the next column
+    const turn2StartX = goingLeft ? nextX + r : nextX - r;
+    d += ` L ${turn2StartX} ${y_mid}`;
+
+    // 4. Second 90-degree rounded turn downwards into the next card
+    d += ` Q ${nextX} ${y_mid}, ${nextX} ${y_mid + r}`;
+  }
+
+  // 5. Final vertical line exiting the bottom of the last card
+  const lastX = getX(count - 1);
+  d += ` L ${lastX} ${count * 100}`;
+  return d;
+}
+
+export default function PipelineRoadmapSection() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const INITIAL_COUNT = 5;
+  const visibleCount = isExpanded ? PIPELINE_STEPS.length : INITIAL_COUNT;
+
+  // Serpentine path matching user's sketch (Starts on Right: Card 1 Right -> Card 2 Left -> Card 3 Right...)
+  const serpentinePath = useMemo(
+    () => generateSerpentinePath(visibleCount, true),
+    [visibleCount]
+  );
+
+  const renderStepCard = (item: (typeof PIPELINE_STEPS)[0], idx: number) => {
+    // Step 01 (idx = 0) is on the RIGHT, Step 02 (idx = 1) is on the LEFT, as per diagram
+    const isRight = idx % 2 === 0;
+    const IconComponent = item.icon;
+
+    return (
+      <div key={item.step} className="relative w-full flex items-center">
+        <div
+          className={`w-full md:w-[46%] relative z-20 ${
+            isRight ? 'md:ml-auto' : 'md:mr-auto'
+          }`}
+        >
+          <div className="group relative bg-[#f4f4f4]/95 dark:bg-[#163432]/95 backdrop-blur-xl border border-stone-300 dark:border-teal-900/80 hover:border-teal-500/60 dark:hover:border-teal-500/60 rounded-3xl p-6 sm:p-7 shadow-md hover:shadow-xl transition-all duration-300">
+            {/* Top Accent Gradient Bar */}
+            <div className={`h-1.5 w-16 rounded-full bg-gradient-to-r ${item.color} mb-5`} />
+
+            {/* Header: Step Number, Date/Phase, Title, & Icon */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="font-mono text-xs font-extrabold tracking-wider text-teal-800 dark:text-teal-300 uppercase bg-teal-50 dark:bg-teal-950/80 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800 shrink-0">
+                    {item.step}
+                  </span>
+                  <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 font-mono">
+                    {item.date}
+                  </span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-white pt-1 group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">
+                  {item.title}
+                </h3>
+              </div>
+
+              {/* Embedded Step Icon Chip (inside card) */}
+              <div className={`w-11 h-11 rounded-2xl p-0.5 shadow-xs bg-gradient-to-br ${item.color} shrink-0`}>
+                <div className="w-full h-full bg-white dark:bg-stone-900 rounded-[14px] flex items-center justify-center text-teal-700 dark:text-teal-400">
+                  <IconComponent className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Description (Always Expanded Detail) */}
+            <p className="text-stone-600 dark:text-stone-300 text-sm leading-relaxed font-normal mt-4">
+              {item.desc}
+            </p>
+
+            {/* Bottom Meta & Verification Tag */}
+            <div className="flex items-center justify-between pt-4 mt-5 border-t border-stone-200 dark:border-teal-900/60">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-teal-800 dark:text-teal-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{item.tag}</span>
+              </div>
+              <span className="text-[11px] font-mono font-medium text-stone-400 dark:text-stone-500">
+                Phase 0{idx + 1}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -117,7 +226,7 @@ export default function PipelineRoadmapSection() {
             stroke-dashoffset: 0;
           }
           to {
-            stroke-dashoffset: -40;
+            stroke-dashoffset: -36;
           }
         }
         .flowing-dash-line {
@@ -130,28 +239,68 @@ export default function PipelineRoadmapSection() {
 
       {/* SECTION HEADER */}
       <div className="text-center space-y-4 max-w-3xl mx-auto px-4">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 dark:bg-teal-950/80 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 text-xs font-bold tracking-wide uppercase shadow-xs">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 dark:bg-teal-950/80 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 text-xs font-bold tracking-wide uppercase shadow-xs">
           <Sparkles className="w-3.5 h-3.5 text-teal-500" />
           <span>Alur Perjalanan & Proteksi Laporan</span>
         </div>
-        
+
         <h2 className="text-3xl md:text-5xl font-extrabold text-stone-900 dark:text-white tracking-tight leading-tight">
-          Peta Alur 9-Tahap Proteksi <br />
+          Peta Alur Kerja & Proteksi <br />
           <span className="text-stone-900 dark:text-white font-extrabold">
-            AmanKampus Platform
+            RuangAman Platform
           </span>
         </h2>
-        
+
         <p className="text-stone-600 dark:text-stone-300 text-base md:text-lg leading-relaxed font-medium">
-          Tekan setiap tahap untuk melihat detail proteksi data yang berjalan di peranti Anda.
+          Alur komprehensif pelaporan anonim dan proteksi data zero-knowledge yang berjalan di peranti Anda.
         </p>
       </div>
 
       {/* ── ROADMAP PIPELINE CONTAINER ─────────────────────────────────────── */}
       <div className="relative max-w-5xl mx-auto px-4">
-        
-        {/* CENTER CONTINUOUS FLOWING DASHED LINE (DESKTOP) */}
-        <div className="hidden md:block absolute left-1/2 top-10 bottom-10 -translate-x-1/2 w-1 pointer-events-none z-0">
+        {/* DESKTOP SERPENTINE CIRCUIT FLOWING DASHED LINE (Z-INDEX: 0 / BEHIND CARDS) */}
+        <div className="hidden md:block absolute inset-0 pointer-events-none z-0">
+          <svg
+            className="w-full h-full overflow-visible"
+            viewBox={`0 0 100 ${visibleCount * 100}`}
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="curveFlowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#0f766e" stopOpacity="0.85" />
+                <stop offset="35%" stopColor="#14b8a6" stopOpacity="0.95" />
+                <stop offset="70%" stopColor="#06b6d4" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.85" />
+              </linearGradient>
+            </defs>
+
+            {/* Ambient Glow Trail Behind */}
+            <path
+              d={serpentinePath}
+              fill="none"
+              stroke="currentColor"
+              className="text-teal-500/15 dark:text-teal-400/20"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Active Animated Dashed Serpentine Flow */}
+            <path
+              d={serpentinePath}
+              fill="none"
+              stroke="url(#curveFlowGradient)"
+              strokeWidth="2.5"
+              strokeDasharray="10 8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="flowing-dash-line"
+            />
+          </svg>
+        </div>
+
+        {/* MOBILE FLOWING DASHED LINE (Z-INDEX: 0 / BEHIND CARDS) */}
+        <div className="md:hidden absolute left-6 top-10 bottom-10 w-1 pointer-events-none z-0">
           <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
             <line
               x1="50%"
@@ -159,103 +308,57 @@ export default function PipelineRoadmapSection() {
               x2="50%"
               y2="100%"
               stroke="currentColor"
-              className="text-teal-500/60 dark:text-teal-400/50 flowing-dash-line"
-              strokeWidth="3.5"
-              strokeDasharray="12 10"
+              className="text-teal-600/60 dark:text-teal-400/50 flowing-dash-line"
+              strokeWidth="2.5"
+              strokeDasharray="10 8"
             />
           </svg>
         </div>
 
-        {/* STEP CARDS GRID (ZIGZAG LAYOUT) */}
+        {/* STEP CARDS CONTAINER */}
         <div className="space-y-8 md:space-y-12 relative z-10">
-          {PIPELINE_STEPS.map((item, idx) => {
-            const isEven = idx % 2 === 0;
-            const isOpen = openStep === idx;
-            const IconComponent = item.icon;
+          {/* Initial 5 Steps */}
+          {PIPELINE_STEPS.slice(0, INITIAL_COUNT).map((item, idx) => renderStepCard(item, idx))}
 
-            return (
-              <div
-                key={idx}
-                className={`flex flex-col md:flex-row items-center gap-6 md:gap-8 ${
-                  isEven ? 'md:flex-row-reverse' : ''
-                }`}
+          {/* Remaining Steps 6 - 9 (Smoothly Animated on Toggle) */}
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                key="remaining-steps"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-8 md:space-y-12 overflow-hidden pt-8 md:pt-12"
               >
-                {/* CARD CONTENT (CLICK TO EXPAND DETAILS) */}
-                <div className="w-full md:w-1/2 px-2">
-                  <div
-                    onClick={() => toggleStep(idx)}
-                    className={`group cursor-pointer relative bg-white/90 dark:bg-[#163432] backdrop-blur-xl border rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 ${
-                      isOpen
-                        ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-xl'
-                        : 'border-stone-200 dark:border-teal-900 hover:border-teal-400/60'
-                    }`}
-                  >
-                    {/* Top Accent Bar */}
-                    <div className={`h-1.5 w-16 rounded-full bg-gradient-to-r ${item.color} mb-4`} />
+                {PIPELINE_STEPS.slice(INITIAL_COUNT).map((item, index) => {
+                  const idx = index + INITIAL_COUNT;
+                  return renderStepCard(item, idx);
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-                    {/* Step Card Header */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono font-extrabold tracking-wider text-teal-700 dark:text-teal-300 uppercase bg-teal-50 dark:bg-teal-950 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800 shrink-0">
-                          {item.step}
-                        </span>
-                        <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                          {item.title}
-                        </h3>
-                      </div>
-
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-stone-100 dark:bg-[#0a2220] text-stone-600 dark:text-stone-300 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180 bg-teal-50 dark:bg-teal-950 text-teal-600' : ''}`}>
-                        <ChevronDown className="w-4 h-4" />
-                      </div>
-                    </div>
-
-                    {/* EXPANDABLE DETAILS (SLIDE IN UPON CLICK) */}
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="overflow-hidden pt-4 mt-4 border-t border-stone-100 dark:border-stone-800 space-y-4"
-                        >
-                          <p className="text-stone-600 dark:text-stone-300 text-sm leading-relaxed font-medium">
-                            {item.desc}
-                          </p>
-
-                          <div className="flex items-center justify-between pt-1">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-teal-700 dark:text-teal-300">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                              <span>{item.tag}</span>
-                            </div>
-
-                            <span className="text-[11px] font-semibold text-stone-400 font-mono">
-                              {item.date}
-                            </span>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                {/* CENTRAL ROADMAP NODE CIRCLE */}
-                <div
-                  onClick={() => toggleStep(idx)}
-                  className="relative shrink-0 flex items-center justify-center my-1 md:my-0 cursor-pointer"
-                >
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-0.5 shadow-md transition-all duration-300 ${isOpen ? 'scale-110 ring-4 ring-teal-500/30' : 'hover:scale-105'} bg-gradient-to-br ${item.color}`}>
-                    <div className="w-full h-full bg-stone-900 rounded-[14px] flex items-center justify-center text-teal-400">
-                      <IconComponent className="w-6 h-6" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* EMPTY BALANCING COLUMN (DESKTOP) */}
-                <div className="hidden md:block w-1/2" />
-              </div>
-            );
-          })}
+        {/* TOGGLE EXPAND / COLLAPSE BUTTON */}
+        <div className="pt-12 text-center relative z-20">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="group inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-teal-800 hover:bg-teal-700 dark:bg-teal-900/90 dark:hover:bg-teal-800 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer border border-teal-700 dark:border-teal-600"
+          >
+            {isExpanded ? (
+              <>
+                <span>Sembunyikan Alur (Tampilkan 5 Langkah Utama)</span>
+                <ChevronUp className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
+              </>
+            ) : (
+              <>
+                <span>Lihat Seluruh Alur Sistem (9 Langkah)</span>
+                <ChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </section>

@@ -123,7 +123,7 @@ export default function IntroAnimation() {
               >
                 <Image
                   src="/images/logii.png"
-                  alt="AmanKampus Logo"
+                  alt="RuangAman Logo"
                   fill
                   className="object-cover"
                   priority
@@ -142,7 +142,7 @@ export default function IntroAnimation() {
                 className="text-4xl font-extrabold tracking-tight text-white"
                 style={{ textShadow: '0 2px 12px rgba(20,184,166,0.4)' }}
               >
-                AmanKampus
+                RuangAman
               </span>
             </motion.div>
           </motion.div>

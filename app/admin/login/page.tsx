@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, User, Eye, EyeOff, ShieldAlert, LogIn, ArrowLeft, ShieldCheck, Sparkles, KeyRound, Sun, Moon } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldAlert, LogIn, ArrowLeft, ShieldCheck, Sparkles, KeyRound, Sun, Moon, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import { checkIsAdminAuthenticated, setAdminAuthSession, clearAdminAuthSession } from '@/lib/adminUtils';
 
 const DEMO_USER = 'admin';
 const DEMO_PASS = 'satgas2026';
@@ -24,11 +25,17 @@ export default function AdminLoginPage() {
   useEffect(() => {
     setMounted(true);
     try {
-      const hasCookie = typeof document !== 'undefined' && document.cookie.includes('isAdminLoggedIn=true');
-      const hasSession = typeof window !== 'undefined' && sessionStorage.getItem('isAdminLoggedIn') === 'true';
-      if (hasCookie || hasSession) {
+      // Jika pengguna datang dengan parameter ?logout=true atau ?reset=true, bersihkan sesi secara total
+      if (typeof window !== 'undefined' && (window.location.search.includes('logout=true') || window.location.search.includes('reset=true'))) {
+        clearAdminAuthSession();
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      // Jika terautentikasi dan sesi sinkron, arahkan ke dasbor
+      if (checkIsAdminAuthenticated()) {
         router.replace('/admin');
-        const timer = setTimeout(() => setIsCheckingAuth(false), 500);
+        const timer = setTimeout(() => setIsCheckingAuth(false), 800);
         return () => clearTimeout(timer);
       }
     } catch (e) {
@@ -40,9 +47,14 @@ export default function AdminLoginPage() {
   const isDark = resolvedTheme === 'dark';
 
   const loginAndRedirect = () => {
-    sessionStorage.setItem('isAdminLoggedIn', 'true');
-    document.cookie = 'isAdminLoggedIn=true; path=/; max-age=86400; SameSite=Lax';
+    setAdminAuthSession();
     router.push('/admin');
+  };
+
+  const handleResetSession = () => {
+    clearAdminAuthSession();
+    setError('Sesi autentikasi telah di-reset. Silakan login kembali.');
+    setIsCheckingAuth(false);
   };
 
   const handleFillDemo = () => {
@@ -63,14 +75,22 @@ export default function AdminLoginPage() {
         setError('Username atau password salah. Gunakan kredensial demo Satgas.');
         setIsLoading(false);
       }
-    }, 1000);
+    }, 600);
   };
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center gap-4 text-stone-500 dark:text-stone-400">
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center gap-4 text-stone-500 dark:text-stone-400 px-4 text-center">
         <div className="w-9 h-9 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
         <p className="text-xs font-semibold tracking-wide">Memeriksa Hak Akses Admin...</p>
+        <button
+          type="button"
+          onClick={handleResetSession}
+          className="text-xs text-teal-700 dark:text-teal-400 underline hover:opacity-80 mt-2 cursor-pointer flex items-center gap-1.5"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Klik di sini jika halaman tertahan atau ingin reset sesi
+        </button>
       </div>
     );
   }
@@ -120,7 +140,7 @@ export default function AdminLoginPage() {
                 Portal Internal Satgas
               </h1>
               <p className="text-stone-500 dark:text-stone-400 text-xs sm:text-sm mt-1.5">
-                Autentikasi Aman Verifikasi Kasus PPKS AmanKampus
+                Autentikasi Aman Verifikasi Kasus PPKS RuangAman
               </p>
             </div>
           </div>
@@ -231,7 +251,7 @@ export default function AdminLoginPage() {
       </div>
 
       <div className="relative z-10 text-center py-2 text-xs text-stone-500 dark:text-stone-400 font-medium">
-        <p>AmanKampus — Platform Keamanan & Forensik Digital Satgas PPKS</p>
+        <p>RuangAman — Platform Keamanan & Forensik Digital Satgas PPKS</p>
       </div>
     </div>
   );

@@ -38,35 +38,19 @@ export function validateFileSignature(file: File, buffer: ArrayBuffer): FileVali
     return { valid: false, detectedType: 'Shell Script', isExecutableOrScript: true, message: 'Ditolak: Terdeteksi skrip eksekusi shell script (#!).' };
   }
 
-  // 2) Pemeriksaan Injeksi Skrip SVG / HTML (XSS Risk)
-  const asciiHeader = Array.from(bytes.slice(0, 512)).map((b) => (b >= 32 && b <= 126 ? String.fromCharCode(b) : ' ')).join('').toLowerCase();
-  if (asciiHeader.includes('<svg') || asciiHeader.includes('xmlns="http://www.w3.org/2000/svg')) {
-    if (asciiHeader.includes('<script') || asciiHeader.includes('javascript:') || asciiHeader.includes('onload=')) {
-      return { valid: false, detectedType: 'SVG Script Injection', isExecutableOrScript: true, message: 'Ditolak: Berkas SVG terindikasi skrip berbahaya (XSS Vector).' };
-    }
-    return { valid: false, detectedType: 'SVG Vector Image', isExecutableOrScript: false, message: 'Ditolak: Format SVG tidak diizinkan sebagai bukti demi keamanan render browser.' };
-  }
-  if (asciiHeader.includes('<html') || asciiHeader.includes('<!doctype html')) {
-    return { valid: false, detectedType: 'HTML Document', isExecutableOrScript: true, message: 'Ditolak: Dokumen HTML tidak diizinkan sebagai bukti.' };
-  }
-
-  // 3) Verifikasi Magic Bytes Format Resmi (Khusus Media: Foto, Audio, Video)
-  // JPEG: FF D8 FF
-  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
-    return { valid: true, detectedType: 'image/jpeg', isExecutableOrScript: false, message: 'Tervalidasi JPEG Image Header (FF D8 FF).' };
-  }
+  // 2) Verifikasi Magic Bytes Format Biner Resmi (Foto, Audio, Video Asli)
   // PNG: 89 50 4E 47 0D 0A 1A 0A
   if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
     return { valid: true, detectedType: 'image/png', isExecutableOrScript: false, message: 'Tervalidasi PNG Image Header (89 50 4E 47).' };
+  }
+  // JPEG: FF D8 FF
+  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+    return { valid: true, detectedType: 'image/jpeg', isExecutableOrScript: false, message: 'Tervalidasi JPEG Image Header (FF D8 FF).' };
   }
   // WEBP: RIFF ... WEBP
   if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
       bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
     return { valid: true, detectedType: 'image/webp', isExecutableOrScript: false, message: 'Tervalidasi WEBP Container (RIFF...WEBP).' };
-  }
-  // PDF: %PDF (Ditolak: hanya foto, audio, video yang diperbolehkan)
-  if (bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
-    return { valid: false, detectedType: 'application/pdf', isExecutableOrScript: false, message: 'Ditolak: Dokumen PDF tidak diizinkan sebagai bukti forensik. Harap unggah berkas Foto, Video, atau Audio.' };
   }
   // MP3: ID3 atau Sync Frame FF FB/FF F3
   if ((bytes.length >= 3 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
@@ -87,7 +71,28 @@ export function validateFileSignature(file: File, buffer: ArrayBuffer): FileVali
     return { valid: true, detectedType: 'video/webm', isExecutableOrScript: false, message: 'Tervalidasi WebM Container.' };
   }
 
-  // Jika tipe ekstensi dikenal dan merupakan media foto, audio, atau video
+  // 3) Pemeriksaan Berkas Teks Berbahaya / Non-Media (SVG, HTML, PDF)
+  // SVG Vector Check: Hanya berlaku jika berkas BUKAN binary raster image (misal file .svg atau XML)
+  const isSvgType = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+  const asciiHeader = Array.from(bytes.slice(0, 512)).map((b) => (b >= 32 && b <= 126 ? String.fromCharCode(b) : ' ')).join('').toLowerCase();
+
+  if (isSvgType || asciiHeader.trim().startsWith('<svg') || asciiHeader.includes('xmlns="http://www.w3.org/2000/svg')) {
+    if (asciiHeader.includes('<script') || asciiHeader.includes('javascript:') || asciiHeader.includes('onload=')) {
+      return { valid: false, detectedType: 'SVG Script Injection', isExecutableOrScript: true, message: 'Ditolak: Berkas SVG terindikasi skrip berbahaya (XSS Vector).' };
+    }
+    return { valid: false, detectedType: 'SVG Vector Image', isExecutableOrScript: false, message: 'Ditolak: Format SVG tidak diizinkan sebagai bukti demi keamanan render browser.' };
+  }
+
+  if (asciiHeader.includes('<html') || asciiHeader.includes('<!doctype html')) {
+    return { valid: false, detectedType: 'HTML Document', isExecutableOrScript: true, message: 'Ditolak: Dokumen HTML tidak diizinkan sebagai bukti.' };
+  }
+
+  // PDF: %PDF (Ditolak: hanya foto, audio, video yang diperbolehkan)
+  if (bytes.length >= 4 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+    return { valid: false, detectedType: 'application/pdf', isExecutableOrScript: false, message: 'Ditolak: Dokumen PDF tidak diizinkan sebagai bukti forensik. Harap unggah berkas Foto, Video, atau Audio.' };
+  }
+
+  // 4) Verifikasi Berdasarkan Tipe MIME Browser (Jika format valid terdaftar)
   const allowedMediaMime = ['image/jpeg', 'image/png', 'image/webp', 'audio/mp3', 'audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/m4a', 'video/mp4', 'video/webm', 'video/quicktime'];
   if (allowedMediaMime.includes(file.type)) {
     return { valid: true, detectedType: file.type, isExecutableOrScript: false, message: 'Tervalidasi berbasis tipe MIME media browser.' };

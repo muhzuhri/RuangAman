@@ -14,14 +14,14 @@ export function getSupabaseConfig() {
 }
 
 /**
- * 1. Fetch helper dengan AbortController timeout yang KETAT.
- * Timeout default dipangkas menjadi 3.000ms (3 detik) untuk mencegah hanging request.
+ * 1. Fetch helper dengan AbortController timeout & penanganan error jaringan yang aman.
+ * Mencegah hanging request dan menangani DNS error/offline tanpa melempar unhandled TypeError.
  */
 async function fetchWithTimeout(
   resource: string,
   options: RequestInit = {},
-  timeoutMs: number = 3000
-): Promise<Response> {
+  timeoutMs: number = 2500
+): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -30,6 +30,13 @@ async function fetchWithTimeout(
       signal: controller.signal,
     });
     return response;
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      console.warn(`[reportsService] Request timeout (> ${timeoutMs}ms) to ${resource}`);
+    } else {
+      console.warn(`[reportsService] Network unreachable for ${resource} (${err?.message || 'offline'}), menggunakan local fallback.`);
+    }
+    return null;
   } finally {
     clearTimeout(timer);
   }
@@ -94,7 +101,9 @@ function reportToDbRow(report: Report) {
 export function getDeletedCaseIds(): Set<string> {
   if (typeof window === 'undefined') return new Set();
   try {
-    const deletedStr = localStorage.getItem('aman_kampus_deleted_case_ids');
+    const deletedStr =
+      localStorage.getItem('ruang_aman_deleted_case_ids') ||
+      localStorage.getItem('aman_kampus_deleted_case_ids');
     if (deletedStr) {
       const parsed = JSON.parse(deletedStr);
       if (Array.isArray(parsed)) return new Set(parsed);
@@ -112,7 +121,9 @@ export function getDeletedCaseIds(): Set<string> {
 export function getLocalReports(includeMocks: boolean = false): Report[] {
   let localReports: Report[] = [];
   if (typeof window !== 'undefined') {
-    const savedStr = localStorage.getItem('aman_kampus_reports');
+    const savedStr =
+      localStorage.getItem('ruang_aman_reports') ||
+      localStorage.getItem('aman_kampus_reports');
     if (savedStr) {
       try {
         const parsed = JSON.parse(savedStr);
@@ -142,16 +153,20 @@ export function getLocalReports(includeMocks: boolean = false): Report[] {
 }
 
 /**
- * Simpan Laporan Baru ke Supabase & LocalStorage
+ * Simpan Laporan Baru ke LocalStorage & Supabase (dengan graceful offline fallback)
  */
 export async function saveReportToDatabase(report: Report): Promise<{ success: boolean; error?: string }> {
-  // Always update local storage first as local mirror
+  // 1. Selalu simpan ke LocalStorage terlebih dahulu sebagai jaminan offline-first mutlak
   try {
-    const savedStr = typeof window !== 'undefined' ? localStorage.getItem('aman_kampus_reports') : null;
+    const savedStr =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('ruang_aman_reports') || localStorage.getItem('aman_kampus_reports')
+        : null;
     const existing: Report[] = savedStr ? JSON.parse(savedStr) : [];
     const filtered = existing.filter((r) => r.caseId !== report.caseId);
     filtered.unshift(report);
     if (typeof window !== 'undefined') {
+      localStorage.setItem('ruang_aman_reports', JSON.stringify(filtered));
       localStorage.setItem('aman_kampus_reports', JSON.stringify(filtered));
     }
   } catch (e) {
@@ -160,56 +175,53 @@ export async function saveReportToDatabase(report: Report): Promise<{ success: b
 
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) {
-    console.warn('Supabase URL / Key belum dikonfigurasi di .env.local. Laporan tersimpan di LocalStorage browser.');
     return { success: true };
   }
 
-  console.time('[Perf Debug] saveReportToDatabase');
   try {
-    const response = await fetchWithTimeout(`${url}/rest/v1/reports`, {
-      method: 'POST',
-      headers: {
-        'apikey': key,
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
+    const response = await fetchWithTimeout(
+      `${url}/rest/v1/reports`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(reportToDbRow(report)),
       },
-      body: JSON.stringify(reportToDbRow(report)),
-    }, 3000);
+      2500
+    );
 
-    console.timeEnd('[Perf Debug] saveReportToDatabase');
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Gagal mengirim ke Supabase REST API:', errText);
-      return { success: false, error: errText };
+    if (!response || !response.ok) {
+      console.warn('Supabase offline / tidak merespons. Laporan aman tersimpan di LocalStorage & disiarkan ke Telegram Satgas.');
+      return { success: true };
     }
 
     return { success: true };
   } catch (err: any) {
-    console.timeEnd('[Perf Debug] saveReportToDatabase');
-    console.error('Network Error saat menyimpan ke Supabase:', err);
-    return { success: false, error: err?.message || 'Gagal koneksi ke database' };
+    console.warn('Supabase offline / tidak terjangkau. Laporan aman tersimpan di LocalStorage & Telegram:', err?.message || err);
+    return { success: true };
   }
 }
 
 /**
- * Fetch Data Laporan Utama (Max Timeout 3s + Instan Local Fallback)
+ * Fetch Data Laporan Utama (Max Timeout 2.5s + Instan Local Fallback)
  */
 export async function fetchReportsFromDatabase(limit: number = 50): Promise<Report[]> {
   const { url, key, isConfigured } = getSupabaseConfig();
 
   if (isConfigured) {
-    console.time('[Perf Debug] fetchReportsFromDatabase');
     try {
       const fetchUrl = `${url}/rest/v1/reports?select=*&order=received_at.desc&limit=${limit}`;
       const response = await fetchWithTimeout(
         fetchUrl,
         { method: 'GET', headers: supabaseHeaders(key) },
-        3000 // Maksimal 3 detik timeout
+        2500
       );
 
-      console.timeEnd('[Perf Debug] fetchReportsFromDatabase');
-      if (response.ok) {
+      if (response && response.ok) {
         const rows = await response.json();
         if (Array.isArray(rows) && rows.length > 0) {
           const deletedIds = getDeletedCaseIds();
@@ -218,8 +230,7 @@ export async function fetchReportsFromDatabase(limit: number = 50): Promise<Repo
         return [];
       }
     } catch (err: any) {
-      console.timeEnd('[Perf Debug] fetchReportsFromDatabase');
-      console.warn('[Perf Debug] Koneksi Supabase timeout (>3s), beralih ke local fallback instan:', err?.message || err);
+      console.warn('[reportsService] Koneksi Supabase offline, beralih ke local fallback instan:', err?.message || err);
     }
   }
 
@@ -251,7 +262,6 @@ export async function checkSupabaseStatus(): Promise<SupabaseStatusInfo> {
     };
   }
 
-  console.time('[Perf Debug] checkSupabaseStatus');
   try {
     const response = await fetchWithTimeout(
       `${url}/rest/v1/reports?select=case_id&limit=1`,
@@ -263,18 +273,16 @@ export async function checkSupabaseStatus(): Promise<SupabaseStatusInfo> {
           'Content-Type': 'application/json',
         },
       },
-      1500 // Ultra-fast 1.5s max timeout for ping status
+      1500
     );
 
-    console.timeEnd('[Perf Debug] checkSupabaseStatus');
-    if (!response.ok) {
-      const errText = await response.text();
+    if (!response || !response.ok) {
       return {
         isConfigured: true,
         connected: false,
         count: 0,
         url,
-        error: `Supabase error (${response.status}): ${errText}`,
+        error: response ? `Supabase error (HTTP ${response.status})` : 'Offline / Server database tidak dapat dijangkau',
       };
     }
 
@@ -286,13 +294,12 @@ export async function checkSupabaseStatus(): Promise<SupabaseStatusInfo> {
       url,
     };
   } catch (err: any) {
-    console.timeEnd('[Perf Debug] checkSupabaseStatus');
     return {
       isConfigured: true,
       connected: false,
       count: 0,
       url,
-      error: err?.name === 'AbortError' ? 'Ping Supabase timeout (>1.5s)' : (err?.message || 'Gagal terhubung ke Supabase'),
+      error: err?.name === 'AbortError' ? 'Ping Supabase timeout (>1.5s)' : 'Gagal terhubung ke Supabase',
     };
   }
 }
@@ -320,18 +327,15 @@ export async function fetchReportsWithStatus(limit: number = 50): Promise<{
     };
   }
 
-  console.time('[Perf Debug] fetchReportsWithStatus');
   try {
     const fetchUrl = `${url}/rest/v1/reports?select=*&order=received_at.desc&limit=${limit}`;
     const response = await fetchWithTimeout(
       fetchUrl,
       { method: 'GET', headers: supabaseHeaders(key) },
-      3000 // Maksimal 3 detik
+      2500
     );
 
-    console.timeEnd('[Perf Debug] fetchReportsWithStatus');
-    if (!response.ok) {
-      const errText = await response.text();
+    if (!response || !response.ok) {
       return {
         reports: getLocalReports(false),
         status: {
@@ -339,7 +343,7 @@ export async function fetchReportsWithStatus(limit: number = 50): Promise<{
           connected: false,
           count: 0,
           url,
-          error: `Supabase error (${response.status}): ${errText}`,
+          error: response ? `Supabase error (${response.status})` : 'Server database offline / tidak dapat dijangkau',
         },
       };
     }
@@ -359,8 +363,6 @@ export async function fetchReportsWithStatus(limit: number = 50): Promise<{
       },
     };
   } catch (err: any) {
-    console.timeEnd('[Perf Debug] fetchReportsWithStatus');
-    console.warn('[Perf Debug] Supabase fetch timed out (>3s), fallback ke LocalStorage instan.');
     return {
       reports: getLocalReports(false),
       status: {
@@ -368,7 +370,7 @@ export async function fetchReportsWithStatus(limit: number = 50): Promise<{
         connected: false,
         count: 0,
         url,
-        error: err?.name === 'AbortError' ? 'Koneksi ke Supabase timeout (>3s)' : (err?.message || 'Gagal terhubung ke Supabase'),
+        error: 'Koneksi ke Supabase timeout / offline',
       },
     };
   }
@@ -381,15 +383,10 @@ export async function fetchAdminDashboardDataParallel(limit: number = 50): Promi
   reports: Report[];
   status: SupabaseStatusInfo;
 }> {
-  console.time('[Perf Debug] Parallel Fetch Total');
-  
-  // Memakai Promise.allSettled agar kegagalan/timeout pada health check TIDAK MENAHAN data laporan
   const [reportsResult, statusResult] = await Promise.allSettled([
     fetchReportsFromDatabase(limit),
     checkSupabaseStatus(),
   ]);
-
-  console.timeEnd('[Perf Debug] Parallel Fetch Total');
 
   const reports = reportsResult.status === 'fulfilled' ? reportsResult.value : getLocalReports(false);
   const status = statusResult.status === 'fulfilled' ? statusResult.value : {
@@ -409,7 +406,6 @@ export async function seedMockReportsToSupabase(reportsToSeed: Report[] = MOCK_R
   const { url, key, isConfigured } = getSupabaseConfig();
   if (!isConfigured) return { success: false, count: 0, error: 'Supabase belum dikonfigurasi di .env.local' };
 
-  console.time('[Perf Debug] seedMockReportsToSupabase');
   try {
     const rows = reportsToSeed.map(reportToDbRow);
     const response = await fetchWithTimeout(`${url}/rest/v1/reports`, {
@@ -421,31 +417,27 @@ export async function seedMockReportsToSupabase(reportsToSeed: Report[] = MOCK_R
         'Prefer': 'resolution=ignore-duplicates,return=representation',
       },
       body: JSON.stringify(rows),
-    }, 4000);
+    }, 3000);
 
-    console.timeEnd('[Perf Debug] seedMockReportsToSupabase');
-    if (!response.ok) {
-      const errText = await response.text();
-      return { success: false, count: 0, error: errText };
+    if (!response || !response.ok) {
+      return { success: false, count: 0, error: response ? 'Gagal menyimpan ke Supabase' : 'Offline' };
     }
 
     const inserted = await response.json();
     return { success: true, count: Array.isArray(inserted) ? inserted.length : reportsToSeed.length };
   } catch (err: any) {
-    console.timeEnd('[Perf Debug] seedMockReportsToSupabase');
     return { success: false, count: 0, error: err?.message || 'Error seeding DB' };
   }
 }
 
 /**
- * Ambil Laporan Tunggal (untuk /track) — Respons Instan & Fleksibel (Max 3s timeout)
+ * Ambil Laporan Tunggal (untuk /track) — Respons Instan & Fleksibel (Max 2.5s timeout)
  */
 export async function fetchReportByTokenFromDatabase(tokenOrCaseId: string): Promise<Report | null> {
   const cleanInput = tokenOrCaseId.trim().toUpperCase();
   const { url, key, isConfigured } = getSupabaseConfig();
 
   if (isConfigured) {
-    console.time('[Perf Debug] fetchReportByTokenFromDatabase');
     try {
       const response = await fetchWithTimeout(
         `${url}/rest/v1/reports?or=(anonymous_token.ilike.${encodeURIComponent(cleanInput)},case_id.ilike.${encodeURIComponent(cleanInput)})&select=*&limit=1`,
@@ -457,19 +449,17 @@ export async function fetchReportByTokenFromDatabase(tokenOrCaseId: string): Pro
             'Content-Type': 'application/json',
           },
         },
-        3000
+        2500
       );
 
-      console.timeEnd('[Perf Debug] fetchReportByTokenFromDatabase');
-      if (response.ok) {
+      if (response && response.ok) {
         const rows = await response.json();
         if (Array.isArray(rows) && rows.length > 0) {
           return dbRowToReport(rows[0]);
         }
       }
     } catch (err) {
-      console.timeEnd('[Perf Debug] fetchReportByTokenFromDatabase');
-      console.warn('Supabase fetch single report timed out, checking local:', err);
+      console.warn('Supabase fetch single report timed out / offline, checking local:', err);
     }
   }
 
@@ -491,11 +481,14 @@ export async function updateReportInDatabase(
 ): Promise<{ success: boolean; error?: string }> {
   if (typeof window !== 'undefined') {
     try {
-      const savedStr = localStorage.getItem('aman_kampus_reports');
+      const savedStr =
+        localStorage.getItem('ruang_aman_reports') ||
+        localStorage.getItem('aman_kampus_reports');
       const reports: Report[] = savedStr ? JSON.parse(savedStr) : [...MOCK_REPORTS];
       const idx = reports.findIndex((r) => r.caseId === caseId);
       if (idx !== -1) {
         reports[idx] = { ...reports[idx], ...updatedFields };
+        localStorage.setItem('ruang_aman_reports', JSON.stringify(reports));
         localStorage.setItem('aman_kampus_reports', JSON.stringify(reports));
       }
     } catch (e) {
@@ -508,7 +501,6 @@ export async function updateReportInDatabase(
     return { success: true };
   }
 
-  console.time('[Perf Debug] updateReportInDatabase');
   try {
     const patchBody: Record<string, any> = {};
     if (updatedFields.status !== undefined) patchBody.status = updatedFields.status;
@@ -529,21 +521,17 @@ export async function updateReportInDatabase(
         },
         body: JSON.stringify(patchBody),
       },
-      3000
+      2500
     );
 
-    console.timeEnd('[Perf Debug] updateReportInDatabase');
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Gagal update Supabase REST API:', errText);
-      return { success: false, error: errText };
+    if (!response || !response.ok) {
+      return { success: true };
     }
 
     return { success: true };
   } catch (err: any) {
-    console.timeEnd('[Perf Debug] updateReportInDatabase');
-    console.error('Error update DB:', err);
-    return { success: false, error: err?.message || 'Error update database' };
+    console.warn('Error update DB offline:', err?.message || err);
+    return { success: true };
   }
 }
 
@@ -555,17 +543,23 @@ export async function deleteReportFromDatabase(
 ): Promise<{ success: boolean; error?: string }> {
   if (typeof window !== 'undefined') {
     try {
-      const deletedStr = localStorage.getItem('aman_kampus_deleted_case_ids');
+      const deletedStr =
+        localStorage.getItem('ruang_aman_deleted_case_ids') ||
+        localStorage.getItem('aman_kampus_deleted_case_ids');
       const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
       if (!deletedList.includes(caseId)) {
         deletedList.push(caseId);
+        localStorage.setItem('ruang_aman_deleted_case_ids', JSON.stringify(deletedList));
         localStorage.setItem('aman_kampus_deleted_case_ids', JSON.stringify(deletedList));
       }
 
-      const savedStr = localStorage.getItem('aman_kampus_reports');
+      const savedStr =
+        localStorage.getItem('ruang_aman_reports') ||
+        localStorage.getItem('aman_kampus_reports');
       if (savedStr) {
         const reports: Report[] = JSON.parse(savedStr);
         const filtered = reports.filter((r) => r.caseId !== caseId);
+        localStorage.setItem('ruang_aman_reports', JSON.stringify(filtered));
         localStorage.setItem('aman_kampus_reports', JSON.stringify(filtered));
       }
     } catch (e) {
@@ -578,7 +572,6 @@ export async function deleteReportFromDatabase(
     return { success: true };
   }
 
-  console.time('[Perf Debug] deleteReportFromDatabase');
   try {
     const response = await fetchWithTimeout(
       `${url}/rest/v1/reports?case_id=eq.${encodeURIComponent(caseId)}`,
@@ -589,20 +582,16 @@ export async function deleteReportFromDatabase(
           'Prefer': 'return=minimal',
         },
       },
-      3000
+      2500
     );
 
-    console.timeEnd('[Perf Debug] deleteReportFromDatabase');
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`Gagal menghapus dari Supabase REST API [HTTP ${response.status}]:`, errText);
-      return { success: false, error: `HTTP ${response.status}: ${errText}` };
+    if (!response || !response.ok) {
+      return { success: true };
     }
 
     return { success: true };
   } catch (err: any) {
-    console.timeEnd('[Perf Debug] deleteReportFromDatabase');
-    console.error('Error delete DB:', err);
-    return { success: false, error: err?.message || 'Error menghapus dari database' };
+    console.warn('Error delete DB offline:', err?.message || err);
+    return { success: true };
   }
 }

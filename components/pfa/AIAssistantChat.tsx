@@ -37,7 +37,7 @@ const QUICK_CHIPS = [
 const INITIAL_MESSAGE: UIMessage = {
   id: 'init',
   role: 'model',
-  text: 'Halo, saya Ara 💚 — pendamping Psychological First Aid dari AmanKampus. Saya di sini untuk mendengarkan Anda dengan penuh empati dan tanpa menghakimi siapapun.\n\nApapun yang Anda rasakan saat ini, Anda tidak sendirian. Identitas Anda sepenuhnya terlindungi. Bagaimana kondisi Anda sekarang?',
+  text: 'Halo, saya Ara 💚 — pendamping Psychological First Aid dari RuangAman. Saya di sini untuk mendengarkan Anda dengan penuh empati dan tanpa menghakimi siapapun.\n\nApapun yang Anda rasakan saat ini, Anda tidak sendirian. Identitas Anda sepenuhnya terlindungi. Bagaimana kondisi Anda sekarang?',
   timestamp: new Date(),
 };
 
@@ -226,7 +226,7 @@ export default function AIAssistantChat() {
               </span>
             </div>
             <p className="text-[11px] text-stone-500 dark:text-stone-400">
-              Pendamping Psychological First Aid · AmanKampus
+              Pendamping Psychological First Aid · RuangAman
             </p>
           </div>
         </div>

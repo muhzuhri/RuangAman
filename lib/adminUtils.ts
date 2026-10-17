@@ -98,7 +98,7 @@ export function handleDownloadEvidence(ev: Evidence) {
 
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('AMANKAMPUS — BERKAS BUKTI ASLI PELAPOR', 60, 80);
+    ctx.fillText('RUANGAMAN — BERKAS BUKTI ASLI PELAPOR', 60, 80);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '22px sans-serif';
@@ -131,7 +131,7 @@ export function handleDownloadEvidence(ev: Evidence) {
 
     ctx.fillStyle = '#64748b';
     ctx.font = '18px sans-serif';
-    ctx.fillText('Dokumen resmi terenkripsi Satgas PPKS AmanKampus.', 60, 630);
+    ctx.fillText('Dokumen resmi terenkripsi Satgas PPKS RuangAman.', 60, 630);
 
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -146,4 +146,56 @@ export function handleDownloadEvidence(ev: Evidence) {
       URL.revokeObjectURL(url);
     }, ev.fileType || 'image/png');
   }
+}
+
+// ── Admin Authentication Session Helpers ─────────────────────────────────────
+
+export function setAdminAuthSession() {
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem('isAdminLoggedIn', 'true');
+      localStorage.setItem('isAdminLoggedIn', 'true');
+      document.cookie = 'isAdminLoggedIn=true; path=/; max-age=86400; SameSite=Lax';
+    } catch (e) {
+      console.warn('Set admin session warning:', e);
+    }
+  }
+}
+
+export function clearAdminAuthSession() {
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.removeItem('isAdminLoggedIn');
+      localStorage.removeItem('isAdminLoggedIn');
+      document.cookie = 'isAdminLoggedIn=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    } catch (e) {
+      console.warn('Clear admin session warning:', e);
+    }
+  }
+}
+
+export function checkIsAdminAuthenticated(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const hasCookie = document.cookie.includes('isAdminLoggedIn=true');
+    const hasSession = sessionStorage.getItem('isAdminLoggedIn') === 'true';
+    const hasLocal = localStorage.getItem('isAdminLoggedIn') === 'true';
+
+    // If any auth token exists, keep all stores synchronized to prevent redirect mismatch
+    if (hasCookie || hasSession || hasLocal) {
+      if (!hasCookie) {
+        document.cookie = 'isAdminLoggedIn=true; path=/; max-age=86400; SameSite=Lax';
+      }
+      if (!hasSession) {
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+      }
+      if (!hasLocal) {
+        localStorage.setItem('isAdminLoggedIn', 'true');
+      }
+      return true;
+    }
+  } catch (e) {
+    console.warn('Auth check warning:', e);
+  }
+  return false;
 }

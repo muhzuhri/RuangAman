@@ -43,7 +43,7 @@ export default function GlassmorphismCTA() {
       <div className="flex">
         <a
           href="/Panduan.pdf" // Ganti dengan nama file Anda di folder public
-          download="Panduan-Penggunaan-AmanKampus.pdf"
+          download="Panduan-Penggunaan-RuangAman.pdf"
           className="inline-flex items-center justify-center gap-2.5 bg-[#e7dede] hover:bg-stone-200 dark:bg-teal-600 dark:hover:bg-stone-600 text-stone-800 hover:text-stone-900 dark:text-stone-100 font-semibold px-7 py-3.5 rounded-xl transition-colors border border-stone-300 dark:border-stone-500 text-sm w-full sm:w-auto"
         >
           <Download className="w-4 h-4 text-teal-800 dark:text-teal-400" />

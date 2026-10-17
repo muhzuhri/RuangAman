@@ -20,6 +20,7 @@ import {
 } from "@/lib/adminUtils";
 
 import AdminDeleteConfirmModal from "./AdminDeleteConfirmModal";
+import { getAITriageData, getRiskBadgeConfig } from "./AdminCaseDetailModal";
 
 interface AdminInboxTabProps {
   reports: Report[];
@@ -218,9 +219,21 @@ export default function AdminInboxTab({
 
                 {/* Category & Details */}
                 <div className="space-y-1.5">
-                  <span className="inline-block px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-semibold">
-                    {report.category}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-block px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-semibold">
+                      {report.category}
+                    </span>
+                    {(() => {
+                      const triage = getAITriageData(report);
+                      const risk = getRiskBadgeConfig(triage.riskLevel);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${risk.badgeCls}`}>
+                          <span>{risk.badgeIcon}</span>
+                          <span>{risk.riskBadge}</span>
+                        </span>
+                      );
+                    })()}
+                  </div>
 
                   <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
                     <span>
@@ -265,7 +278,7 @@ export default function AdminInboxTab({
                   <tr className="bg-stone-50/80 dark:bg-stone-900/60 border-b border-stone-200 dark:border-teal-900/60 text-stone-500 dark:text-stone-400 font-bold uppercase tracking-wider text-[11px]">
                     <th className="py-3.5 px-4">Case ID</th>
                     <th className="py-3.5 px-4">Token Anonim</th>
-                    <th className="py-3.5 px-4">Kategori Kasus</th>
+                    <th className="py-3.5 px-4">Kategori & Tingkat Risiko AI</th>
                     <th className="py-3.5 px-4">Waktu Diterima</th>
                     <th className="py-3.5 px-4">Status Kasus</th>
                     <th className="py-3.5 px-4 text-right">Aksi</th>
@@ -288,9 +301,21 @@ export default function AdminInboxTab({
                       </td>
 
                       <td className="py-3.5 px-4 text-stone-800 dark:text-stone-200 font-medium">
-                        <span className="px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-semibold">
-                          {report.category}
-                        </span>
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className="px-2.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-[11px] font-semibold">
+                            {report.category}
+                          </span>
+                          {(() => {
+                            const triage = getAITriageData(report);
+                            const risk = getRiskBadgeConfig(triage.riskLevel);
+                            return (
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${risk.badgeCls}`}>
+                                <span>{risk.badgeIcon}</span>
+                                <span>{risk.riskBadge}</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-4 text-stone-600 dark:text-stone-300 font-medium whitespace-nowrap">

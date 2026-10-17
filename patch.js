@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const path = 'c:/Users/Adnan/OneDrive/Documents/Zuhri/code/AmanKampus/app/report/page.tsx';
+const path = 'c:/Users/Adnan/OneDrive/Documents/Zuhri/code/RuangAman/app/report/page.tsx';
 let content = fs.readFileSync(path, 'utf8');
 
 // 1. Imports

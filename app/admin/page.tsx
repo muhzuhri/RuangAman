@@ -17,7 +17,7 @@ import {
   deleteReportFromDatabase,
   type SupabaseStatusInfo,
 } from '@/lib/reportsService';
-import { exportReportsToCSV } from '@/lib/adminUtils';
+import { exportReportsToCSV, checkIsAdminAuthenticated, clearAdminAuthSession } from '@/lib/adminUtils';
 
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminDatabaseBanner from '@/components/admin/AdminDatabaseBanner';
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     setMounted(true);
     try {
-      if (typeof window !== 'undefined' && sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
+      if (!checkIsAdminAuthenticated()) {
         router.replace('/admin/login');
         return;
       }
@@ -136,9 +136,9 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('isAdminLoggedIn');
+    clearAdminAuthSession();
     setIsAuthenticated(false);
-    router.push('/admin/login');
+    router.replace('/admin/login?logout=true');
   };
 
   const handleDeleteReport = async (reportToDelete: Report) => {

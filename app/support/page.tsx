@@ -23,7 +23,6 @@ import {
   VolumeX,
 } from 'lucide-react';
 import Link from 'next/link';
-import AIAssistantChat from '@/components/pfa/AIAssistantChat';
 
 // ─── 4-7-8 Breathing Exercise Timer with Web Audio API Ambient Sound ────────
 
@@ -341,21 +340,6 @@ export default function SupportPage() {
         {/* WIDGET RELAKSASI MANDIRI (4-7-8 BREATHING) */}
         <BreathingWidget />
 
-        {/* AI PSYCHOLOGICAL VIRTUAL ASSISTANT — ARA */}
-        <div className="space-y-5">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-              <span>✨</span> AI Psychological First Aid
-            </div>
-            <h2 className="text-2xl font-extrabold text-stone-900 dark:text-stone-50">
-              Bicara dengan Ara — Pendamping AI Empati Anda
-            </h2>
-            <p className="text-sm text-stone-600 dark:text-stone-400 max-w-2xl">
-              Ara hadir untuk mendengarkan dan menemani Anda melewati momen sulit ini, kapanpun Anda membutuhkan. Percakapan bersifat anonim dan tidak tersimpan.
-            </p>
-          </div>
-          <AIAssistantChat />
-        </div>
 
         {/* DAFTAR KONTAK DARURAT KAMPUS */}
         <div className="space-y-6">
