@@ -27,7 +27,7 @@ export default function AdminDeleteConfirmModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white dark:bg-[#163432] border border-stone-200 dark:border-teal-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-700 border border-stone-200 dark:border-gray-600 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between gap-3 bg-red-50/50 dark:bg-red-950/20">
           <div className="flex items-center gap-3">
@@ -60,10 +60,10 @@ export default function AdminDeleteConfirmModal({
           </p>
 
           {/* Report Detail Preview Box */}
-          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-teal-900/80 space-y-2.5 text-xs">
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-gray-600 space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-stone-500 dark:text-stone-400 font-medium">Case ID:</span>
-              <span className="font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-lg border border-teal-200 dark:border-teal-900">
+              <span className="font-mono font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-lg border border-teal-200 dark:border-gray-600">
                 {report.caseId}
               </span>
             </div>

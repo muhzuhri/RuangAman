@@ -69,7 +69,7 @@ function MessageBubble({ msg }: { msg: UIMessage }) {
           className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
             isUser
               ? 'bg-teal-600 text-white rounded-tr-sm'
-              : 'bg-white dark:bg-[#1a3e3a] text-stone-800 dark:text-stone-100 border border-stone-200 dark:border-teal-900/60 rounded-tl-sm shadow-xs'
+              : 'bg-white dark:bg-gray-800 text-stone-800 dark:text-stone-100 border border-stone-200 dark:border-gray-600 rounded-tl-sm shadow-xs'
           }`}
         >
           {msg.text}
@@ -98,7 +98,7 @@ function TypingIndicator() {
       <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-300 shrink-0">
         <Bot className="w-4 h-4" />
       </div>
-      <div className="px-4 py-3 bg-white dark:bg-[#1a3e3a] border border-stone-200 dark:border-teal-900/60 rounded-2xl rounded-tl-sm shadow-xs">
+      <div className="px-4 py-3 bg-white dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-2xl rounded-tl-sm shadow-xs">
         <div className="flex items-center gap-1 h-4">
           {[0, 1, 2].map((i) => (
             <motion.span
@@ -206,17 +206,17 @@ export default function AIAssistantChat() {
   };
 
   return (
-    <div className="flex flex-col bg-white/95 dark:bg-[#0f2926] backdrop-blur-xl border border-teal-200 dark:border-teal-900/60 rounded-3xl shadow-xl overflow-hidden">
+    <div className="flex flex-col bg-white/95 dark:bg-gray-700 backdrop-blur-xl border border-teal-200 dark:border-gray-600 rounded-3xl shadow-xl overflow-hidden">
       
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="px-5 py-4 bg-emerald-50/80 dark:bg-[#0a201e] border-b border-teal-100 dark:border-teal-900/60 flex items-center justify-between gap-3">
+      <div className="px-5 py-4 bg-emerald-50/80 dark:bg-gray-800 border-b border-teal-100 dark:border-gray-600 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-300">
               <Bot className="w-5 h-5" />
             </div>
             {/* Online indicator */}
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0a201e]" />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-800" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -268,7 +268,7 @@ export default function AIAssistantChat() {
       </div>
 
       {/* ── Quick Chips ────────────────────────────────────────────────────── */}
-      <div className="px-4 py-2 border-t border-stone-100 dark:border-teal-900/40">
+      <div className="px-4 py-2 border-t border-stone-100 dark:border-gray-600">
         <p className="text-[10px] text-stone-400 dark:text-stone-500 font-semibold uppercase tracking-wider mb-2">
           Topik Cepat
         </p>
@@ -288,7 +288,7 @@ export default function AIAssistantChat() {
       </div>
 
       {/* ── Input Area ─────────────────────────────────────────────────────── */}
-      <div className="px-4 py-3 border-t border-stone-100 dark:border-teal-900/40 flex items-end gap-2">
+      <div className="px-4 py-3 border-t border-stone-100 dark:border-gray-600 flex items-end gap-2">
         <div className="flex-1 relative">
           <textarea
             ref={inputRef}
@@ -298,7 +298,7 @@ export default function AIAssistantChat() {
             placeholder="Tulis pesan Anda... (Enter untuk kirim, Shift+Enter untuk baris baru)"
             rows={1}
             disabled={isLoading}
-            className="w-full bg-stone-50 dark:bg-[#0a201e] border border-stone-200 dark:border-teal-900/60 rounded-2xl px-4 py-3 pr-4 text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-600 focus:outline-none focus:border-teal-400 dark:focus:border-teal-600 transition-colors resize-none disabled:opacity-60"
+            className="w-full bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-2xl px-4 py-3 pr-4 text-sm text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-600 focus:outline-none focus:border-teal-400 dark:focus:border-teal-600 transition-colors resize-none disabled:opacity-60"
             style={{ minHeight: '44px', maxHeight: '120px' }}
             onInput={(e) => {
               const el = e.currentTarget;
@@ -322,7 +322,7 @@ export default function AIAssistantChat() {
       </div>
 
       {/* ── Privacy Footer ─────────────────────────────────────────────────── */}
-      <div className="px-4 py-2 bg-stone-50/60 dark:bg-[#061e1c]/60 border-t border-stone-100 dark:border-teal-900/30 flex items-center gap-2">
+      <div className="px-4 py-2 bg-stone-50/60 dark:bg-gray-800/60 border-t border-stone-100 dark:border-gray-600 flex items-center gap-2">
         <MessageSquareHeart className="w-3.5 h-3.5 text-teal-500 shrink-0" />
         <p className="text-[10px] text-stone-400 dark:text-stone-500 leading-relaxed">
           Percakapan ini bersifat anonim sepenuhnya. Tidak ada data pribadi yang tersimpan. Ara bukan pengganti konsultasi profesional.

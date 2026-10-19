@@ -185,7 +185,7 @@ const StepIndicator = ({ current }: { current: number }) => {
                 ? 'bg-teal-500 text-white shadow-xs'
                 : current === s.num
                 ? 'bg-teal-600 text-white border-2 border-teal-300 dark:border-teal-400 shadow-md'
-                : 'bg-[#eeeeee] dark:bg-[#0a2220] border-2 border-stone-300 dark:border-teal-900 text-stone-400'
+                : 'bg-[#eeeeee] dark:bg-gray-800 border-2 border-stone-300 dark:border-gray-600 text-stone-400'
             }`}
           >
             {current > s.num ? <Check className="w-5 h-5" /> : s.num}
@@ -504,6 +504,13 @@ export default function ReportPage() {
         fileSize: pFile.cleanFile.size,
         dataUrl,
         isLiveCapture: pFile.isLiveCapture,
+        acquisitionMethod: pFile.isLiveCapture
+          ? 'Perekaman Langsung Kamera'
+          : pFile.cleanFile.type.startsWith('video/')
+          ? 'Perekaman Video Langsung'
+          : pFile.cleanFile.type.startsWith('audio/')
+          ? 'Perekaman Suara Langsung'
+          : 'Hasil Unduhan / Tangkapan Layar',
         exifStripped: pFile.exifStripped,
         sha256: pFile.sha256,
         forensicStatus: pFile.forensicStatus,
@@ -511,6 +518,8 @@ export default function ReportPage() {
         reporterNote: pFile.reporterNote || undefined,
         verificationStatus,
         verificationNote,
+        extractedMeta: pFile.extractedMeta,
+        validationResult: pFile.validationResult,
       });
     }
 
@@ -638,7 +647,7 @@ export default function ReportPage() {
         {/* ── SUCCESS STATE ────────────────────────────────────────────────── */}
         {isSuccess ? (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
-            <div className="bg-white/90 dark:bg-[#163432] backdrop-blur-xl border border-teal-500/40 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
+            <div className="bg-white/90 dark:bg-gray-700 backdrop-blur-xl border border-teal-500/40 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
 
               <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400 shadow-md">
                 <CheckCircle className="w-10 h-10" />
@@ -652,8 +661,8 @@ export default function ReportPage() {
               </div>
 
               {/* TOKEN DISPLAY CARDS */}
-              <div className="space-y-3 bg-slate-50 dark:bg-[#0a2220] p-5 rounded-2xl border border-stone-300 dark:border-teal-900">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white dark:bg-[#061e1c] rounded-xl border border-stone-300 dark:border-teal-900">
+              <div className="space-y-3 bg-slate-50 dark:bg-gray-800 p-5 rounded-2xl border border-stone-300 dark:border-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white dark:bg-gray-900 rounded-xl border border-stone-300 dark:border-gray-700">
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase font-semibold">Case ID (Internal Satgas)</p>
                     <p className="font-mono text-base font-bold text-slate-900 dark:text-white">{resultCaseId}</p>
@@ -710,7 +719,7 @@ export default function ReportPage() {
           </motion.div>
         ) : (
           /* ── FORM STEPS ─────────────────────────────────────────────────── */
-          <div className="bg-[#f4f4f4] dark:bg-[#163432] backdrop-blur-xl border border-stone-300 dark:border-teal-900 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+          <div className="bg-[#f4f4f4] dark:bg-gray-700 backdrop-blur-xl border border-stone-300 dark:border-gray-600 rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
             
             <StepIndicator current={step} />
 
@@ -736,8 +745,8 @@ export default function ReportPage() {
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className={`w-full bg-white dark:bg-[#0a2220] border ${
-                          errors.category ? 'border-rose-500' : 'border-stone-300 dark:border-teal-900'
+                        className={`w-full bg-white dark:bg-gray-800 border ${
+                          errors.category ? 'border-rose-500' : 'border-stone-300 dark:border-gray-600'
                         } rounded-xl px-4 py-3 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all`}
                       >
                         <option value="">-- Pilih Kategori Kasus --</option>
@@ -760,8 +769,8 @@ export default function ReportPage() {
                         placeholder="Contoh: 12 Agustus 2026 sekitar pukul 14.00 WIB"
                         value={incidentTime}
                         onChange={(e) => setIncidentTime(e.target.value)}
-                        className={`w-full bg-white dark:bg-[#0a2220] border ${
-                          errors.incidentTime ? 'border-rose-500' : 'border-stone-300 dark:border-teal-900'
+                        className={`w-full bg-white dark:bg-gray-800 border ${
+                          errors.incidentTime ? 'border-rose-500' : 'border-stone-300 dark:border-gray-600'
                         } rounded-xl px-4 py-3 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all`}
                       />
                       {errors.incidentTime && <p className="text-xs text-rose-500 font-medium">{errors.incidentTime}</p>}
@@ -776,7 +785,7 @@ export default function ReportPage() {
                           placeholder="Contoh: Mahasiswa X / Oknum Y"
                           value={involvedParties}
                           onChange={(e) => setInvolvedParties(e.target.value)}
-                          className="w-full bg-white dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl px-4 py-3 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all"
+                          className="w-full bg-white dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -786,7 +795,7 @@ export default function ReportPage() {
                           placeholder="Contoh: Fakultas Ilmu Komputer"
                           value={targetFaculty}
                           onChange={(e) => setTargetFaculty(e.target.value)}
-                          className="w-full bg-white dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl px-4 py-3 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all"
+                          className="w-full bg-white dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all"
                         />
                       </div>
                     </div>
@@ -801,8 +810,8 @@ export default function ReportPage() {
                         placeholder="Tuliskan urutan kejadian secara jelas dan rinci..."
                         value={chronology}
                         onChange={(e) => setChronology(e.target.value)}
-                        className={`w-full bg-white dark:bg-[#0a2220] border ${
-                          errors.chronology ? 'border-rose-500' : 'border-stone-300 dark:border-teal-900'
+                        className={`w-full bg-white dark:bg-gray-800 border ${
+                          errors.chronology ? 'border-rose-500' : 'border-stone-300 dark:border-gray-600'
                         } rounded-xl p-4 text-sm text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-500 font-medium transition-all leading-relaxed`}
                       />
                       {errors.chronology && <p className="text-xs text-rose-500 font-medium">{errors.chronology}</p>}
@@ -849,7 +858,7 @@ export default function ReportPage() {
                       className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
                         isDragOver
                           ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/40'
-                          : 'border-stone-300 dark:border-teal-900 hover:border-teal-400 bg-stone-50/50 dark:bg-[#0a2220]'
+                          : 'border-stone-300 dark:border-gray-600 hover:border-teal-400 bg-stone-50/50 dark:bg-gray-800'
                       }`}
                     >
                       <input
@@ -935,11 +944,11 @@ export default function ReportPage() {
                     <div className="space-y-4">
                       {/* Grid for Kategori & Waktu Kejadian */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-stone-50 dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl p-4 space-y-1">
+                        <div className="bg-stone-50 dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-4 space-y-1">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Kategori Kasus</p>
                           <p className="text-sm font-bold text-teal-700 dark:text-teal-300">{category || '-'}</p>
                         </div>
-                        <div className="bg-stone-50 dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl p-4 space-y-1">
+                        <div className="bg-stone-50 dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-4 space-y-1">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Waktu Kejadian</p>
                           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{incidentTime || '-'}</p>
                         </div>
@@ -947,18 +956,18 @@ export default function ReportPage() {
 
                       {/* Grid for Pihak Terlibat & Lingkup / Fakultas */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-stone-50 dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl p-4 space-y-1">
+                        <div className="bg-stone-50 dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-4 space-y-1">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Pihak Terlibat</p>
                           <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{involvedParties || 'Tidak disebutkan (Rahasia)'}</p>
                         </div>
-                        <div className="bg-stone-50 dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl p-4 space-y-1">
+                        <div className="bg-stone-50 dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-4 space-y-1">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Lingkup / Fakultas</p>
                           <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{targetFaculty || 'Tidak disebutkan'}</p>
                         </div>
                       </div>
 
                       {/* Kronologi Kejadian */}
-                      <div className="bg-stone-50 dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl p-4 space-y-2">
+                      <div className="bg-stone-50 dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Kronologi Kejadian</p>
                           <button type="button" onClick={() => setStep(1)} className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-semibold cursor-pointer">
@@ -969,7 +978,7 @@ export default function ReportPage() {
                       </div>
 
                       {/* Lampiran Bukti & Status Forensik */}
-                      <div className="bg-stone-50 dark:bg-[#0a2220] border border-stone-300 dark:border-teal-900 rounded-xl p-4 space-y-3">
+                      <div className="bg-stone-50 dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
                             <Paperclip className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
@@ -985,7 +994,7 @@ export default function ReportPage() {
                         ) : (
                           <div className="space-y-2.5">
                             {pendingFiles.map((pFile, idx) => (
-                              <div key={idx} className="bg-white dark:bg-[#061e1c] border border-stone-300 dark:border-teal-900 rounded-xl p-3.5 space-y-2 text-xs">
+                              <div key={idx} className="bg-white dark:bg-gray-800 border border-stone-300 dark:border-gray-600 rounded-xl p-3.5 space-y-2 text-xs">
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{pFile.cleanFile.name}</span>
                                   <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 shrink-0">{formatBytes(pFile.cleanFile.size)}</span>
@@ -1037,7 +1046,7 @@ export default function ReportPage() {
                           Selesaikan perhitungan berikut untuk membuktikan laporan ini dibuat oleh manusia (bukan bot otomatis):
                         </p>
                         <div className="flex items-center gap-3">
-                          <span className="font-mono font-bold text-base bg-white dark:bg-[#061e1c] px-3.5 py-2 rounded-xl border border-teal-300 dark:border-teal-700 text-teal-900 dark:text-teal-200">
+                          <span className="font-mono font-bold text-base bg-white dark:bg-gray-800 px-3.5 py-2 rounded-xl border border-teal-300 dark:border-teal-700 text-teal-900 dark:text-teal-200">
                             {humanChallenge.problem}
                           </span>
                           <input
@@ -1045,7 +1054,7 @@ export default function ReportPage() {
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
                             placeholder="Jawaban..."
-                            className="w-32 bg-white dark:bg-[#061e1c] border border-stone-300 dark:border-teal-900 focus:border-teal-500 rounded-xl px-3 py-2 text-sm text-stone-800 dark:text-stone-100 font-semibold"
+                            className="w-32 bg-white dark:bg-gray-800 border border-stone-300 dark:border-gray-600 focus:border-teal-500 rounded-xl px-3 py-2 text-sm text-stone-800 dark:text-stone-100 font-semibold"
                           />
                         </div>
                         {spamError && (

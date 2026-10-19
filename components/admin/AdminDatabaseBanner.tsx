@@ -22,7 +22,7 @@ export default function AdminDatabaseBanner({
   resetMockReports,
 }: AdminDatabaseBannerProps) {
   return (
-    <div className="bg-white dark:bg-[#163432] border border-stone-200 dark:border-teal-900 rounded-2xl p-4 sm:p-5 shadow-xs transition-all">
+    <div className="bg-white dark:bg-gray-700 border border-stone-200 dark:border-gray-600 rounded-2xl p-4 sm:p-5 shadow-xs transition-all">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Left Status Info */}
         <div className="flex items-start sm:items-center gap-3">

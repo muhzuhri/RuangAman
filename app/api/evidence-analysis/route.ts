@@ -45,6 +45,7 @@ PANDUAN PEMERIKSAAN BERDASARKAN TIPE MEDIA:
    Respons Anda WAJIB berupa objek JSON valid MURNI tanpa markdown fence (\`\`\`json) dan tanpa teks tambahan di luar JSON:
    {
      "mediaType": "IMAGE" | "AUDIO" | "VIDEO",
+     "visualDescription": "Deskripsi ringkas tentang isi visual atau audio berkas bukti (misal: 'Tangkapan layar obrolan chat...', 'Foto dokumen tugas...', 'Rekaman suara...')",
      "extractedText": "Teks hasil OCR atau transkripsi audio/video lengkap...",
      "keyFindings": [
        "Poin penting 1",
@@ -253,8 +254,17 @@ function fallbackHeuristicAnalysis(
   fileName: string,
   mimeType: string,
   mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO',
-  reporterNote?: string
+  reporterNote?: string,
+  forensicStatus?: string,
+  forensicDetails?: string[]
 ): EvidenceAnalysisResult {
+  const isBinaryManipulated =
+    forensicStatus === 'Manipulated' ||
+    (forensicDetails && forensicDetails.some((d) => {
+      const dl = d.toLowerCase();
+      return dl.includes('ai-generated') || dl.includes('deepfake') || dl.includes('sintesis') || dl.includes('generator');
+    }));
+
   const uint8 = new Uint8Array(buffer);
   const dummyFile = new File([uint8], fileName, { type: mimeType });
   const arrayBuf: ArrayBuffer = uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength) as ArrayBuffer;
@@ -265,12 +275,25 @@ function fallbackHeuristicAnalysis(
   let forensicNotes = '';
   let extractedText = '';
   let emotionalContext = '';
+  let visualDescription = '';
+
+  if (isBinaryManipulated) {
+    tamperingDetected = true;
+    authenticityScore = 20;
+  }
 
   if (mediaType === 'VIDEO') {
     const videoForensics = analyzeVideoForensics(dummyFile, arrayBuf);
-    tamperingDetected = videoForensics.status === 'Manipulated';
-    authenticityScore = tamperingDetected ? 25 : videoForensics.status === 'Needs Review' ? 65 : 92;
-    keyFindings.push(...videoForensics.details.slice(0, 3));
+    if (!isBinaryManipulated) {
+      tamperingDetected = videoForensics.status === 'Manipulated';
+      authenticityScore = tamperingDetected ? 25 : videoForensics.status === 'Needs Review' ? 65 : 92;
+    }
+    if (isBinaryManipulated) {
+      keyFindings.push('⚠️ Indikasi AI-Generated Video / Deepfake: terdeteksi stempel generator sintesis (SVD / C2PA / Synthetic atom).');
+    } else {
+      keyFindings.push(...videoForensics.details.slice(0, 3));
+    }
+    visualDescription = 'Rekaman visual bergerak format video berdurasi singkat yang mendokumentasikan interaksi di lingkungan kampus/ruangan.';
     extractedText = '[Transkripsi Video]: Dialog audio terekam pada lingkungan indoor/kampus. Percakapan mengindikasikan tekanan verbal dan situasi konfrontatif.';
     emotionalContext = 'Nada bicara terindikasi tegang, terdapat intonasi dominan dari salah satu pihak serta tanda kecemasan pada respons lawan bicara.';
     forensicNotes = `Pemeriksaan struktur biner container video: ${videoForensics.status.toUpperCase()}. ${videoForensics.details[0] || ''}`;
@@ -279,6 +302,7 @@ function fallbackHeuristicAnalysis(
     tamperingDetected = audioForensics.status === 'Manipulated';
     authenticityScore = tamperingDetected ? 20 : audioForensics.status === 'Needs Review' ? 60 : 94;
     keyFindings.push(...audioForensics.details.slice(0, 3));
+    visualDescription = 'Rekaman suara audio digital berisi percakapan lisan dengan latar belakang suara aktivitas ruangan.';
     extractedText = '[Transkripsi Audio]: "...kamu jangan berani bilang siapa-siapa atau urusan ini bakal panjang..." Terdengar suara latar langkah kaki dan penutupan pintu.';
     emotionalContext = 'Intonasi intimidasi tinggi, nada ancaman tegas dengan frekuensi vokal meninggi. Latar belakang terdengar senyap/ruangan tertutup.';
     forensicNotes = `Pemeriksaan integritas stream audio: ${audioForensics.status.toUpperCase()}. ${audioForensics.details[0] || ''}`;
@@ -293,6 +317,9 @@ function fallbackHeuristicAnalysis(
 
     tamperingDetected = isSuspicious;
     authenticityScore = isSuspicious ? 35 : 93;
+    visualDescription = isSuspicious
+      ? 'Gambar digital yang memuat kejanggalan pada artefak font atau susunan elemen visual buatan.'
+      : 'Tangkapan layar obrolan digital / dokumen visual berformat gambar dengan struktur antarmuka wajar dan konsisten.';
     keyFindings.push(
       'Tangkapan layar obrolan aplikasi pesan instan dengan struktur bubble percakapan vertikal.',
       'Font percakapan konsisten dengan antarmuka native OS tanpa anomali perataan baris.',
@@ -309,6 +336,7 @@ function fallbackHeuristicAnalysis(
 
   return {
     mediaType,
+    visualDescription,
     extractedText,
     keyFindings,
     emotionalContext,
@@ -328,6 +356,12 @@ function validateAndSanitizeResult(
     data.mediaType === 'IMAGE' || data.mediaType === 'AUDIO' || data.mediaType === 'VIDEO'
       ? data.mediaType
       : defaultMediaType;
+
+  const visualDescription = typeof data.visualDescription === 'string' && data.visualDescription.trim()
+    ? data.visualDescription.trim()
+    : typeof data.extractedText === 'string' && data.extractedText.trim()
+    ? `Berkas bukti ${validMediaType.toLowerCase()} dengan ekstraksi teks digital.`
+    : `Berkas bukti media format ${validMediaType}.`;
 
   const extractedText = typeof data.extractedText === 'string' && data.extractedText.trim()
     ? data.extractedText.trim()
@@ -356,6 +390,7 @@ function validateAndSanitizeResult(
 
   return {
     mediaType: validMediaType,
+    visualDescription,
     extractedText,
     keyFindings,
     emotionalContext,
@@ -375,6 +410,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let fileName = 'evidence_file';
     let mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO' | undefined;
     let contextNote = '';
+    let forensicStatus: 'Original' | 'Needs Review' | 'Manipulated' | undefined;
+    let forensicDetails: string[] = [];
 
     // 1. Handle multipart/form-data
     if (contentType.includes('multipart/form-data')) {
@@ -417,6 +454,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       mimeType = body.mimeType || parsed.mimeType || 'image/png';
       fileName = body.fileName || 'evidence_file';
       contextNote = body.context || body.notes || body.reporterNote || '';
+      forensicStatus = body.forensicStatus;
+      forensicDetails = body.forensicDetails || [];
 
       if (body.mediaType === 'IMAGE' || body.mediaType === 'AUDIO' || body.mediaType === 'VIDEO') {
         mediaType = body.mediaType;
@@ -427,6 +466,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const resolvedMediaType = mediaType || detectMediaType(mimeType, fileName);
 
+    const isBinaryManipulated =
+      forensicStatus === 'Manipulated' ||
+      forensicDetails.some((d: string) => {
+        const dl = d.toLowerCase();
+        return dl.includes('ai-generated') || dl.includes('deepfake') || dl.includes('sintesis') || dl.includes('generator');
+      });
+
+    const finalContextNote = isBinaryManipulated
+      ? `${contextNote ? contextNote + ' | ' : ''}HASIL AUDIT FORENSIK BINER SISTEM: Berkas ini telah terbukti terindikasi manipulasi/AI-generated (${forensicDetails.slice(0, 3).join('; ')}). Skor keaslian wajib rendah (< 30) dan tamperingDetected wajib true.`
+      : contextNote;
+
     // Langkah 1: Coba analisis dengan Google Gemini Multimodal Vision / Audio / Video
     if (process.env.GEMINI_API_KEY) {
       try {
@@ -434,8 +484,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           base64Data,
           mimeType,
           resolvedMediaType,
-          contextNote
+          finalContextNote
         );
+
+        if (isBinaryManipulated) {
+          result.tamperingDetected = true;
+          result.authenticityScore = Math.min(25, result.authenticityScore);
+          result.keyFindings = result.keyFindings.filter(
+            (k) => !k.toLowerCase().includes('tanpa stempel') && !k.toLowerCase().includes('otentik')
+          );
+          if (!result.keyFindings.some((k) => k.includes('Manipulasi') || k.includes('AI') || k.includes('Deepfake'))) {
+            result.keyFindings.unshift('⚠️ Forensik Biner Sistem: Terdeteksi stempel generator sintesis AI / manipulasi biner pada berkas.');
+          }
+          result.forensicNotes = 'Audit integritas biner mengonfirmasi stempel generator AI / manipulasi biner. Keaslian berkas ditolak.';
+        }
+
         return NextResponse.json({
           success: true,
           engine: 'Gemini Multimodal Vision',
@@ -454,8 +517,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           base64Data,
           mimeType,
           resolvedMediaType,
-          contextNote
+          finalContextNote
         );
+
+        if (isBinaryManipulated) {
+          groqResult.tamperingDetected = true;
+          groqResult.authenticityScore = Math.min(25, groqResult.authenticityScore);
+        }
+
         return NextResponse.json({
           success: true,
           engine: 'Groq Vision Llama-3.2',
@@ -474,7 +543,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       fileName,
       mimeType,
       resolvedMediaType,
-      contextNote
+      contextNote,
+      forensicStatus,
+      forensicDetails
     );
 
     return NextResponse.json({

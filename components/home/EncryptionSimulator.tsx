@@ -29,7 +29,7 @@ export default function EncryptionSimulator() {
       transition={FADE_UP_TRANSITION}
       className="relative max-w-5xl mx-auto home-block"
     >
-      <div className="bg-[#f4f4f4] dark:bg-[#163432] border border-stone-300 dark:border-stone-600 rounded-2xl p-8 md:p-12 shadow-sm space-y-8">
+      <div className="bg-[#f4f4f4] dark:bg-gray-700 border border-stone-300 dark:border-gray-600 rounded-2xl p-8 md:p-12 shadow-sm space-y-8">
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <div className="w-14 h-14 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl flex items-center justify-center mx-auto">
             <ShieldCheck className="w-8 h-8 text-teal-800 dark:text-teal-400" />
@@ -40,7 +40,7 @@ export default function EncryptionSimulator() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 items-stretch bg-stone-50 dark:bg-stone-900 p-6 md:p-8 rounded-2xl border border-stone-100 dark:border-stone-700">
+        <div className="grid md:grid-cols-2 gap-6 items-stretch bg-stone-50 dark:bg-slate-800 p-6 md:p-8 rounded-2xl border border-stone-100 dark:border-stone-700">
           <div className="space-y-3 flex flex-col">
             <label className="text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider">Input pesan simulasi</label>
             <textarea
@@ -48,17 +48,17 @@ export default function EncryptionSimulator() {
               value={simInput}
               onChange={(e) => setSimInput(e.target.value)}
               placeholder="Ketik contoh isi laporan di sini..."
-              className="w-full flex-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-600 rounded-xl p-4 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-800/15 resize-none text-sm placeholder:text-stone-400 font-sans"
+              className="w-full flex-1 bg-white dark:bg-slate-700 border border-stone-200 dark:border-stone-600 rounded-xl p-4 text-stone-800 dark:text-stone-100 focus:outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-800/15 resize-none text-sm placeholder:text-stone-400 font-sans"
             />
           </div>
           <div className="space-y-3 flex flex-col">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider">Hasil enkripsi (AES-256 mock)</label>
-              <span className="text-[10px] text-teal-800 dark:text-teal-300 bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-600 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+              <span className="text-[10px] text-teal-800 dark:text-teal-300 bg-stone-100 dark:bg-slate-800 border border-stone-200 dark:border-stone-600 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
                 Secure
               </span>
             </div>
-            <div className="flex-1 bg-stone-900 rounded-xl p-4 border border-stone-800 font-mono text-xs text-teal-300 break-all overflow-y-auto min-h-[120px] flex items-center leading-relaxed">
+            <div className="flex-1 bg-slate-900 rounded-xl p-4 border border-stone-800 font-mono text-xs text-teal-300 break-all overflow-y-auto min-h-[120px] flex items-center leading-relaxed">
               {simInput ? (
                 <motion.div
                   key={simInput}
@@ -81,7 +81,7 @@ export default function EncryptionSimulator() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="flex flex-col sm:flex-row items-center justify-between bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 gap-4"
+              className="flex flex-col sm:flex-row items-center justify-between bg-stone-50 dark:bg-slate-900 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 gap-4"
             >
               <div className="flex items-center gap-3">
                 <div className="bg-white dark:bg-stone-800 p-3 rounded-xl border border-stone-200 dark:border-stone-600">

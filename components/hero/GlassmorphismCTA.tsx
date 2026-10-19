@@ -32,7 +32,7 @@ export default function GlassmorphismCTA() {
 
         <Link
           href="/track"
-          className="inline-flex items-center justify-center gap-2.5 bg-[#f0f0f0] hover:bg-stone-200 dark:bg-[#163432] dark:hover:bg-[#1e4e4a] text-stone-800 hover:text-stone-900 dark:text-stone-100 font-semibold px-7 py-3.5 rounded-xl transition-colors border border-stone-300 dark:border-teal-900 text-sm"
+          className="inline-flex items-center justify-center gap-2.5 bg-[#f0f0f0] hover:bg-stone-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-stone-800 hover:text-stone-900 dark:text-stone-100 font-semibold px-7 py-3.5 rounded-xl transition-colors border border-stone-300 dark:border-gray-600 text-sm"
         >
           <KeyRound className="w-4 h-4 text-teal-800 dark:text-teal-400" />
           <span>Cek status token</span>

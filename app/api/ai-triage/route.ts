@@ -171,20 +171,23 @@ function heuristicTriage(kronologi: string, evidences?: TriageEvidenceSummary[])
   const realCriticalKeywords = [
     'perkosaan', 'diperkosa', 'pemerkosaan', 'diserang secara fisik',
     'ancaman pembunuhan', 'dibacok', 'dipukul berdarah', 'dicekik',
-    'disekap', 'dipaksa bersetubuh'
+    'disekap', 'dipaksa bersetubuh', 'sebar foto kamu', 'sebar foto',
+    'tak sebar foto', 'ancaman sebar', 'sebar video'
   ];
 
   // 3. Keyword pelanggaran serius non-fisik / KSBE / intimidasi
   const highKeywords = [
     'pelecehan seksual', 'dilecehkan', 'dipegang paksa', 'diraba paksa',
     'foto bugil', 'disebar luaskan', 'intimidasi', 'mengancam menyebarkan',
-    'stalking', 'deepfake', 'konten intim', 'cyberbullying berat'
+    'stalking', 'deepfake', 'konten intim', 'cyberbullying berat', 'ancam',
+    'nurut tak sebar'
   ];
 
-  // 4. Keyword diskriminasi / etika
+  // 4. Keyword diskriminasi / etika / pemerasan relasi kuasa
   const mediumKeywords = [
     'diskriminasi', 'diperlakukan tidak adil', 'diejek', 'dipermalukan di depan kelas',
-    'pelanggaran etika dosen', 'ancaman nilai diturunkan'
+    'pelanggaran etika dosen', 'ancaman nilai diturunkan', 'senior', 'transfer uang',
+    'palak', 'pemerasan', 'bayar uang', 'pungli'
   ];
 
   let riskLevel: TriageRiskLevel = 'LOW';
@@ -205,16 +208,16 @@ function heuristicTriage(kronologi: string, evidences?: TriageEvidenceSummary[])
 
   if (realCriticalKeywords.some((k) => text.includes(k))) {
     riskLevel = 'CRITICAL';
-    urgencyScore = 92;
+    urgencyScore = 88;
   } else if (highKeywords.some((k) => text.includes(k))) {
     riskLevel = 'HIGH';
-    urgencyScore = 72;
+    urgencyScore = 75;
   } else if (mediumKeywords.some((k) => text.includes(k))) {
     riskLevel = 'MEDIUM';
-    urgencyScore = 48;
+    urgencyScore = 65;
   } else {
     riskLevel = 'LOW';
-    urgencyScore = 25;
+    urgencyScore = 15;
   }
 
   // Cek Penalti Bukti Manipulasi AI
@@ -228,17 +231,17 @@ function heuristicTriage(kronologi: string, evidences?: TriageEvidenceSummary[])
   }
 
   const categoryMap: Record<TriageRiskLevel, string> = {
-    CRITICAL: 'Kekerasan Seksual & Bahaya Fisik Darurat',
+    CRITICAL: 'Indikasi Pengancaman / Kekerasan Seksual Berbasis Elektronik (KSBE)',
     HIGH: 'Perundungan Siber & Pelecehan Non-Fisik',
-    MEDIUM: 'Diskriminasi & Pelanggaran Etika Kampus',
-    LOW: 'Keluhan Non-Kritis & Konflik Interpersonal',
+    MEDIUM: 'Indikasi Pemerasan Finansial & Perundungan Relasi Kuasa (Bullying)',
+    LOW: 'Laporan Non-Kasus / Aktivitas Akademik Normal',
   };
 
   const legalMap: Record<TriageRiskLevel, string> = {
-    CRITICAL: 'Pasal 5 & 6 UU No. 12 Tahun 2022 tentang Tindak Pidana Kekerasan Seksual (TPKS)',
+    CRITICAL: 'Pasal 14 UU TPKS No. 12 Tahun 2022 & Permendikbudristek No. 30/2021',
     HIGH: 'Pasal 14 UU TPKS (KSBE) & Pasal 5 Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
-    MEDIUM: 'Pasal 9 & 10 Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual',
-    LOW: 'Pasal 9 Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
+    MEDIUM: 'Pasal 368 KUHP (Pemerasan) & Permendikbudristek No. 30/2021',
+    LOW: 'Pasal 28E UUD 1945 & Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
   };
 
   const summaryMap: Record<TriageRiskLevel, string> = {
@@ -277,9 +280,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const kronologi = body.kronologi.trim();
-    if (kronologi.length < 20) {
+    if (kronologi.length < 3) {
       return NextResponse.json(
-        { error: 'Kronologi terlalu singkat untuk dianalisis (minimal 20 karakter).' },
+        { error: 'Kronologi terlalu singkat untuk dianalisis.' },
         { status: 400 }
       );
     }

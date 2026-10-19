@@ -807,7 +807,7 @@ export default function FloatingPfaChatbot() {
             </div>
 
             {/* 2. DUAL-MODE TAB SWITCHER SUBHEADER */}
-            <div className="px-3.5 py-2 bg-stone-100/90 dark:bg-[#071d1b]/90 border-b border-stone-200 dark:border-teal-900/60 flex items-center justify-between gap-2 shrink-0">
+            <div className="px-3.5 py-2 bg-stone-100/90 dark:bg-gray-800/90 border-b border-stone-200 dark:border-gray-600 flex items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-1 bg-stone-200/90 dark:bg-stone-900/90 p-0.5 rounded-xl border border-stone-300 dark:border-stone-700">
                 <button
                   type="button"
@@ -829,9 +829,6 @@ export default function FloatingPfaChatbot() {
                   type="button"
                   onClick={() => {
                     setMode('avatar');
-                    if (!isMuted && ttsSupported && currentCaption) {
-                      speakText(currentCaption);
-                    }
                   }}
                   className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                     mode === 'avatar'
@@ -927,7 +924,7 @@ export default function FloatingPfaChatbot() {
                   </div>
 
                   {/* Quick Chips Bar */}
-                  <div className="px-3 py-2 border-t border-stone-200/60 dark:border-teal-900/60 bg-stone-50/50 dark:bg-[#091f1c]/50">
+                  <div className="px-3 py-2 border-t border-stone-200/60 dark:border-gray-600 bg-stone-50/50 dark:bg-gray-800/50">
                     <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
                       {QUICK_CHIPS.map((chip) => (
                         <button
@@ -935,7 +932,7 @@ export default function FloatingPfaChatbot() {
                           type="button"
                           onClick={() => sendMessage(chip)}
                           disabled={isLoading}
-                          className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-white dark:bg-[#143834] text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-teal-800/70 hover:bg-teal-50 dark:hover:bg-teal-900/70 hover:text-teal-700 dark:hover:text-teal-200 shrink-0 transition-colors cursor-pointer disabled:opacity-40"
+                          className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-white dark:bg-gray-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-gray-600 hover:bg-teal-50 dark:hover:bg-gray-600 hover:text-teal-700 dark:hover:text-teal-200 shrink-0 transition-colors cursor-pointer disabled:opacity-40"
                         >
                           {chip}
                         </button>
@@ -944,7 +941,7 @@ export default function FloatingPfaChatbot() {
                   </div>
 
                   {/* Input Box */}
-                  <div className="p-3 bg-white dark:bg-[#0c2623] border-t border-stone-200 dark:border-teal-900/60 flex items-end gap-2 shrink-0">
+                  <div className="p-3 bg-white dark:bg-gray-800 border-t border-stone-200 dark:border-gray-600 flex items-end gap-2 shrink-0">
                     <textarea
                       ref={inputRef}
                       value={inputValue}
@@ -953,7 +950,7 @@ export default function FloatingPfaChatbot() {
                       placeholder="Ceritakan apa yang Anda rasakan..."
                       rows={1}
                       disabled={isLoading}
-                      className="flex-1 bg-stone-100 dark:bg-[#133531] border border-stone-300 dark:border-teal-800/80 rounded-2xl px-3.5 py-2.5 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:border-teal-500 transition-colors resize-none disabled:opacity-60"
+                      className="flex-1 bg-stone-100 dark:bg-gray-700 border border-stone-300 dark:border-gray-600 rounded-2xl px-3.5 py-2.5 text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:border-teal-500 transition-colors resize-none disabled:opacity-60"
                       style={{ minHeight: '40px', maxHeight: '100px' }}
                       onInput={(e) => {
                         const el = e.currentTarget;
@@ -982,10 +979,10 @@ export default function FloatingPfaChatbot() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col flex-1 p-4 pb-5 justify-between overflow-hidden bg-gradient-to-b from-[#0a2321] via-[#071c1a] to-[#041210] text-white"
+                  className="flex flex-col flex-1 p-3 sm:p-4 pb-4 justify-between overflow-y-auto no-scrollbar space-y-2.5 bg-gradient-to-b from-[#0a2321] via-[#071c1a] to-[#041210] text-white"
                 >
                   {/* Top Area: Status Indicator & Avatar */}
-                  <div className="flex flex-col items-center justify-center space-y-2.5 pt-1">
+                  <div className="flex flex-col items-center justify-center space-y-2 pt-1">
                     {/* Status Indicator */}
                     <div className="flex items-center justify-center">
                       <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-teal-800/60 text-[11px] shadow-sm">
@@ -1017,7 +1014,7 @@ export default function FloatingPfaChatbot() {
                       <AnimatedAraSvgAvatar
                         isSpeaking={isSpeaking}
                         isListening={isListening}
-                        size={isMaximized ? 210 : 165}
+                        size={isMaximized ? 175 : 130}
                       />
 
                       {/* Frequency Equalizer Bars (Fixed 24px container) */}

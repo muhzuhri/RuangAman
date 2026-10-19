@@ -353,10 +353,10 @@ export default function PFAChat() {
   };
 
   return (
-    <div className="w-full bg-[#f4f4f4] dark:bg-[#163432] backdrop-blur-2xl border border-stone-300 dark:border-teal-900/80 rounded-3xl shadow-xl overflow-hidden flex flex-col transition-all">
+    <div className="w-full bg-[#f4f4f4] dark:bg-gray-700 backdrop-blur-2xl border border-stone-300 dark:border-gray-600 rounded-3xl shadow-xl overflow-hidden flex flex-col transition-all">
       
       {/* ── 1. HEADER & DUAL-MODE TOGGLE SWITCH ─────────────────────────────── */}
-      <div className="px-5 py-4 border-b border-stone-200 dark:border-teal-900/60 bg-white/80 dark:bg-[#0c2422]/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="px-5 py-4 border-b border-stone-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
         
         {/* Assistant Brand Status */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -368,9 +368,10 @@ export default function PFAChat() {
                 width={44}
                 height={44}
                 className="w-full h-full object-cover"
+                priority
               />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-[#0c2422] rounded-full" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-gray-800 rounded-full" />
           </div>
 
           <div>
@@ -530,7 +531,7 @@ export default function PFAChat() {
                   type="button"
                   onClick={() => handleSendMessage(chip)}
                   disabled={isLoading}
-                  className="shrink-0 text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-[#163432] hover:bg-teal-50 dark:hover:bg-teal-950/80 text-stone-700 dark:text-stone-300 hover:text-teal-800 dark:hover:text-teal-200 border border-stone-300 dark:border-stone-700 transition-all font-medium cursor-pointer"
+                  className="shrink-0 text-xs px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 hover:bg-teal-50 dark:hover:bg-gray-600 text-stone-700 dark:text-stone-300 hover:text-teal-800 dark:hover:text-teal-200 border border-stone-300 dark:border-gray-600 transition-all font-medium cursor-pointer"
                 >
                   {chip}
                 </button>
@@ -538,7 +539,7 @@ export default function PFAChat() {
             </div>
 
             {/* Input Bar */}
-            <div className="p-4 bg-white/90 dark:bg-[#0c2422]/90 border-t border-stone-200 dark:border-teal-900/60 flex items-end gap-3">
+            <div className="p-4 bg-white/90 dark:bg-gray-800/90 border-t border-stone-200 dark:border-gray-600 flex items-end gap-3">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

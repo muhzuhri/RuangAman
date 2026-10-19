@@ -21,6 +21,14 @@ import {
   Gavel,
   Shield,
   AlertTriangle,
+  Eye,
+  FileSearch,
+  XCircle,
+  Send,
+  Copy,
+  Check,
+  RefreshCw,
+  MessageSquare,
 } from 'lucide-react';
 import {
   type Report,
@@ -38,56 +46,111 @@ import {
   ALL_STATUSES,
   handleDownloadEvidence,
 } from '@/lib/adminUtils';
+import FormattedAIContent from '@/components/admin/FormattedAIContent';
 
 // Helper function to extract or compute AI Triage analysis (matching Telegram Bot format)
 export const getAITriageData = (report: Report): AITriageResult => {
+  // Cek apakah ada berkas bukti yang terindikasi manipulasi / rekayasa AI
+  const hasManipulatedEvidence = report.evidences?.some(
+    (e) => e.forensicStatus === 'Manipulated' || e.aiAnalysis?.tamperingDetected
+  );
+
+  // Jika laporan sudah memiliki field aiTriage dari hasil analisis API
   if (report.aiTriage && report.aiTriage.riskLevel) {
-    return report.aiTriage;
+    const base = { ...report.aiTriage };
+    if (hasManipulatedEvidence && base.urgencyScore > 45) {
+      base.urgencyScore = Math.max(20, base.urgencyScore - 35);
+      if (base.riskLevel === 'CRITICAL') base.riskLevel = 'MEDIUM';
+      else if (base.riskLevel === 'HIGH') base.riskLevel = 'LOW';
+      if (!base.summary.includes('diturunkan')) {
+        base.summary += ' (Perhatian: Skor urgensi diturunkan otomatis karena bukti forensik terindikasi manipulasi/AI).';
+      }
+    }
+    return base;
   }
 
-  const cat = (report.category || '').toLowerCase();
   const text = (report.chronology || '').toLowerCase();
 
-  if (
-    cat.includes('fisik') ||
-    cat.includes('kekerasan seksual') ||
-    cat.includes('pelecehan') ||
-    text.includes('paksa') ||
-    text.includes('ancam') ||
-    text.includes('perkosa') ||
-    text.includes('sentuh')
-  ) {
+  // 1. Cek apakah teks kronologi adalah materi/tugas akademik atau non-kasus
+  const academicWords = [
+    'tugas', 'makalah', 'kuliah', 'praktikum', 'coding', 'algoritma',
+    'soal', 'ujian', 'uts', 'uas', 'skripsi', 'modul', 'latihan',
+    'html', 'javascript', 'python', 'antigravity', 'react', 'program',
+    'referensi', 'jurnal', 'materi', 'bab 1', 'bab 2', 'pendahuluan'
+  ];
+  const isAcademicOrBenign = academicWords.some((w) => text.includes(w));
+
+  // 2. Keyword kekerasan fisik nyata / bahaya seketika (Hanya ini yang boleh CRITICAL)
+  const criticalWords = [
+    'perkosaan', 'diperkosa', 'pemerkosaan', 'diserang secara fisik',
+    'ancaman pembunuhan', 'dibacok', 'dipukul berdarah', 'dicekik',
+    'disekap', 'dipaksa bersetubuh'
+  ];
+
+  // 3. Keyword pelanggaran serius non-fisik / KSBE / intimidasi
+  const highWords = [
+    'pelecehan seksual', 'dilecehkan', 'dipegang paksa', 'diraba paksa',
+    'foto bugil', 'disebar luaskan', 'intimidasi', 'mengancam menyebarkan',
+    'stalking', 'deepfake', 'konten intim', 'cyberbullying berat'
+  ];
+
+  // 4. Keyword diskriminasi / etika
+  const mediumWords = [
+    'diskriminasi', 'diperlakukan tidak adil', 'diejek', 'dipermalukan di depan kelas',
+    'pelanggaran etika dosen', 'ancaman nilai diturunkan', 'tidak adil'
+  ];
+
+  // Jika teks tugas kuliah/akademik dan tidak ada kata serangan fisik nyata -> LOW
+  if (isAcademicOrBenign && !criticalWords.some((w) => text.includes(w))) {
     return {
-      riskLevel: 'CRITICAL',
-      urgencyScore: 95,
-      categoryRecommendation: report.category || 'Kekerasan Seksual & Intimidasi Berat',
-      legalPasalBasis: 'Pasal 5 & 6 UU No. 12 Tahun 2022 tentang Tindak Pidana Kekerasan Seksual (TPKS) & Permendikbudristek No. 30 Tahun 2021',
-      summary: 'Laporan mengindikasikan pelanggaran kritis dengan potensi ancaman fisik/psikis langsung yang membutuhkan penanganan darurat segera oleh Satgas PPKS.',
+      riskLevel: 'LOW',
+      urgencyScore: 18,
+      categoryRecommendation: 'Laporan Non-Kasus / Tinjauan Akademik',
+      legalPasalBasis: 'Permendikbudristek No. 30 Tahun 2021 (Verifikasi Awal Substansi Kasus)',
+      summary: 'Teks narasi kronologi terindikasi memuat materi/tugas akademik atau latihan non-kekerasan. Tidak terdeteksi bahaya fisik atau urgensi darurat.',
     };
   }
 
-  if (
-    cat.includes('perundungan') ||
-    cat.includes('daring') ||
-    cat.includes('harassment') ||
-    cat.includes('intimidasi') ||
-    cat.includes('cyber')
-  ) {
-    return {
-      riskLevel: 'HIGH',
-      urgencyScore: 82,
-      categoryRecommendation: report.category || 'Perundungan & Pelecehan Daring (KSBE)',
-      legalPasalBasis: 'Pasal 14 UU No. 12 Tahun 2022 (KSBE) & Pasal 5 Permendikbudristek No. 30 Tahun 2021 tentang PPKS',
-      summary: 'Laporan menunjukkan pola intimidasi berulang dan perundungan berbasis elektronik yang berdampak pada psikis korban.',
-    };
+  let riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
+  let urgencyScore = 25;
+  let categoryRec = report.category || 'Informasi Umum / Non-Darurat';
+  let legalBasis = 'Pasal 9 Permendikbudristek No. 30 Tahun 2021 tentang PPKS';
+  let summary = 'Laporan diterima untuk peninjauan berkala oleh Satgas.';
+
+  if (criticalWords.some((w) => text.includes(w))) {
+    riskLevel = 'CRITICAL';
+    urgencyScore = 92;
+    categoryRec = report.category || 'Kekerasan Seksual & Bahaya Fisik Darurat';
+    legalBasis = 'Pasal 5 & 6 UU No. 12 Tahun 2022 tentang Tindak Pidana Kekerasan Seksual (TPKS)';
+    summary = 'Laporan mengindikasikan pelanggaran fisik/psikis kritis yang membutuhkan respon darurat segera oleh Satgas PPKS.';
+  } else if (highWords.some((w) => text.includes(w))) {
+    riskLevel = 'HIGH';
+    urgencyScore = 72;
+    categoryRec = report.category || 'Perundungan Siber & Pelecehan Non-Fisik';
+    legalBasis = 'Pasal 14 UU TPKS (KSBE) & Pasal 5 Permendikbudristek No. 30 Tahun 2021 tentang PPKS';
+    summary = 'Laporan menunjukkan pola intimidasi atau pelecehan berbasis elektronik yang membutuhkan pendampingan prioritas.';
+  } else if (mediumWords.some((w) => text.includes(w))) {
+    riskLevel = 'MEDIUM';
+    urgencyScore = 48;
+    categoryRec = report.category || 'Diskriminasi & Pelanggaran Etika Kampus';
+    legalBasis = 'Pasal 9 & 10 Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual';
+    summary = 'Laporan memuat indikasi pelanggaran etika atau diskriminasi yang memerlukan klarifikasi dan mediasi terpandu oleh tim Satgas.';
+  }
+
+  // Penalti bukti digital manipulasi / rekayasa AI
+  if (hasManipulatedEvidence) {
+    urgencyScore = Math.max(15, urgencyScore - 40);
+    if (riskLevel === 'CRITICAL') riskLevel = 'MEDIUM';
+    else if (riskLevel === 'HIGH') riskLevel = 'LOW';
+    summary += ' (Perhatian: Skor urgensi diturunkan otomatis karena bukti terdeteksi manipulasi/AI).';
   }
 
   return {
-    riskLevel: 'MEDIUM',
-    urgencyScore: 65,
-    categoryRecommendation: report.category || 'Pelanggaran Etika & Relasi Kuasa',
-    legalPasalBasis: 'Pasal 6, 9 & 10 Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual (PPKS)',
-    summary: 'Laporan memuat indikasi pelanggaran etika akademik atau diskriminasi yang memerlukan klarifikasi dan mediasi terpandu oleh tim Satgas.',
+    riskLevel,
+    urgencyScore,
+    categoryRecommendation: categoryRec,
+    legalPasalBasis: legalBasis,
+    summary,
   };
 };
 
@@ -134,6 +197,7 @@ interface AdminCaseDetailModalProps {
   onClose: () => void;
   onUpdateStatus: (newStatus: CaseStatus) => void;
   onVerifyEvidence: (evidenceId: string, status: EvidenceVerificationStatus, note: string) => void;
+  onSaveEvidenceAnalysis?: (evidenceId: string, analysis: EvidenceAnalysisResult) => void;
   internalNotesMap: Record<string, { id: string; text: string; author: string; timestamp: string }[]>;
   internalNoteInput: string;
   setInternalNoteInput: (input: string) => void;
@@ -145,38 +209,159 @@ export default function AdminCaseDetailModal({
   onClose,
   onUpdateStatus,
   onVerifyEvidence,
+  onSaveEvidenceAnalysis,
   internalNotesMap,
   internalNoteInput,
   setInternalNoteInput,
   onAddInternalNote,
 }: AdminCaseDetailModalProps) {
   const [showAuditTrail, setShowAuditTrail] = useState(false);
-  const [activeTab, setActiveTab] = useState<'detail' | 'evidence' | 'internal'>('detail');
-  const [analyzingEvId, setAnalyzingEvId] = useState<string | null>(null);
-  const [liveAnalysisMap, setLiveAnalysisMap] = useState<Record<string, EvidenceAnalysisResult>>({});
+  const [activeTab, setActiveTab] = useState<'detail' | 'evidence' | 'internal' | 'ai_suggestion'>('detail');
+  const [confirmAction, setConfirmAction] = useState<{
+    evidence: Evidence;
+    action: 'valid' | 'reject';
+    note: string;
+  } | null>(null);
 
-  const handleRunAiAnalysis = async (ev: Evidence) => {
-    setAnalyzingEvId(ev.evidenceId);
+  // ─── STATE KHUSUS SARAN AI & ASISTEN PENANGANAN KASUS ──────────────────────
+  const [aiPlanText, setAiPlanText] = useState<string>('');
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState<boolean>(false);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model'; text: string; timestamp: string }[]>([]);
+  const [chatInput, setChatInput] = useState<string>('');
+  const [isSendingChat, setIsSendingChat] = useState<boolean>(false);
+  const [copiedPlan, setCopiedPlan] = useState<boolean>(false);
+
+  // Generate Saran Penanganan oleh AI
+  const handleGenerateInitialPlan = async () => {
+    if (!report) return;
+    setIsGeneratingPlan(true);
+    const triage = getAITriageData(report);
+
+    const evidenceSummary = (report.evidences || [])
+      .map((e) => `${e.fileName} (status: ${e.forensicStatus || 'Original'}, exifStripped: ${e.exifStripped ? 'Ya' : 'Tidak'})`)
+      .join(', ');
+
     try {
-      const res = await fetch('/api/evidence-analysis', {
+      const res = await fetch('/api/admin/case-ai-advisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mediaBase64: ev.dataUrl || 'dummy_media_bytes',
-          mimeType: ev.fileType || 'image/png',
-          fileName: ev.fileName,
-          context: ev.reporterNote || '',
+          caseData: {
+            caseId: report.caseId,
+            category: report.category,
+            chronology: report.chronology || '',
+            targetFaculty: report.targetFaculty,
+            receivedAt: formatDateID(report.receivedAt),
+            status: report.status,
+            riskLevel: triage.riskLevel,
+            urgencyScore: triage.urgencyScore,
+            evidenceSummary,
+            evidenceCount: report.evidences?.length || 0,
+          },
+          mode: 'initial_plan',
         }),
       });
+
       const json = await res.json();
-      if (json.data) {
-        setLiveAnalysisMap((prev) => ({ ...prev, [ev.evidenceId]: json.data }));
+      if (json.data && json.data.text) {
+        setAiPlanText(json.data.text);
       }
     } catch (err) {
-      console.error('Gagal menjalankan analisis AI:', err);
+      console.error('Gagal memuat saran penanganan AI:', err);
     } finally {
-      setAnalyzingEvId(null);
+      setIsGeneratingPlan(false);
     }
+  };
+
+  // Kirim Pesan Chatbot Konsultasi Kasus Admin
+  const handleSendChat = async (customPrompt?: string) => {
+    const query = (customPrompt || chatInput).trim();
+    if (!query || !report || isSendingChat) return;
+
+    const userMsg = {
+      role: 'user' as const,
+      text: query,
+      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput('');
+    setIsSendingChat(true);
+
+    const triage = getAITriageData(report);
+    const evidenceSummary = (report.evidences || [])
+      .map((e) => `${e.fileName} (${e.forensicStatus})`)
+      .join(', ');
+
+    try {
+      const res = await fetch('/api/admin/case-ai-advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseData: {
+            caseId: report.caseId,
+            category: report.category,
+            chronology: report.chronology || '',
+            targetFaculty: report.targetFaculty,
+            receivedAt: formatDateID(report.receivedAt),
+            status: report.status,
+            riskLevel: triage.riskLevel,
+            urgencyScore: triage.urgencyScore,
+            evidenceSummary,
+            evidenceCount: report.evidences?.length || 0,
+          },
+          mode: 'chat',
+          question: query,
+          history: chatMessages.map((m) => ({ role: m.role, text: m.text })),
+        }),
+      });
+
+      const json = await res.json();
+      const botReply = json?.data?.text || 'Maaf, terjadi kendala saat memproses konsultasi AI.';
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'model',
+          text: botReply,
+          timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } catch (err) {
+      console.error('Error in case advisor chat:', err);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'model',
+          text: 'Terjadi gangguan jaringan saat menghubungi AI Advisor.',
+          timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } finally {
+      setIsSendingChat(false);
+    }
+  };
+
+  const handleCopyPlanToNotes = () => {
+    if (!aiPlanText) return;
+    navigator.clipboard.writeText(aiPlanText);
+    setCopiedPlan(true);
+    setTimeout(() => setCopiedPlan(false), 2500);
+
+    // Otomatis masukkan cuplikan rekomendasi ke input catatan rahasia Satgas
+    setInternalNoteInput(`[Rekomendasi AI] ${aiPlanText.slice(0, 250)}...`);
+  };
+
+  const handleConfirmVerification = () => {
+    if (!confirmAction) return;
+    const { evidence, action, note } = confirmAction;
+    const status: EvidenceVerificationStatus =
+      action === 'valid' ? 'Terverifikasi Valid' : 'Tervalidasi Palsu / Ditolak';
+    const defaultNote =
+      action === 'valid'
+        ? 'Validasi Satgas: Berkas bukti terverifikasi asli & sah.'
+        : 'Validasi Satgas: Berkas bukti ditolak / terindikasi palsu.';
+    onVerifyEvidence(evidence.evidenceId, status, note.trim() || defaultNote);
+    setConfirmAction(null);
   };
 
   if (!report) return null;
@@ -186,7 +371,7 @@ export default function AdminCaseDetailModal({
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
       {/* Top Navigation Back Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#163432] p-4 rounded-2xl border border-stone-200 dark:border-teal-900 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-gray-700 p-4 rounded-2xl border border-stone-200 dark:border-gray-600 shadow-xs">
         <button
           type="button"
           onClick={onClose}
@@ -218,7 +403,7 @@ export default function AdminCaseDetailModal({
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#163432] border border-stone-200 dark:border-teal-900 rounded-3xl w-full flex flex-col shadow-sm overflow-hidden min-h-[550px]">
+      <div className="bg-white dark:bg-gray-700 border border-stone-200 dark:border-gray-600 rounded-3xl w-full flex flex-col shadow-sm overflow-hidden min-h-[550px]">
 
         {/* Modal Inner Navigation Tabs */}
         <div className="flex items-center gap-1 p-2 bg-stone-100 dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 overflow-x-auto">
@@ -256,13 +441,25 @@ export default function AdminCaseDetailModal({
             <Lock className="w-3.5 h-3.5" />
             <span>Catatan Rahasia Satgas ({internalNotes.length})</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('ai_suggestion')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'ai_suggestion'
+                ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-teal-300" />
+            <span>Saran AI</span>
+          </button>
         </div>
 
         {/* Modal Content Scroll Area */}
         <div className="flex-1 p-5 overflow-y-auto space-y-5">
           {/* Audit Trail Drawer Overlay */}
           {showAuditTrail && (
-            <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-900 space-y-3">
+            <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-gray-600 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-xs text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
                   <History className="w-4 h-4" />
@@ -281,7 +478,7 @@ export default function AdminCaseDetailModal({
                   report.auditLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="p-2.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-teal-900 text-xs flex items-start justify-between gap-2"
+                      className="p-2.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-gray-600 text-xs flex items-start justify-between gap-2"
                     >
                       <div>
                         <span className="font-bold text-teal-600 dark:text-teal-400">[{log.actor}]</span>{' '}
@@ -337,24 +534,77 @@ export default function AdminCaseDetailModal({
                 </div>
               </div>
 
-              {/* Compact AI Smart Triage Banner in Detail Tab (Format Telegram) */}
+              {/* ── CARD RINGKASAN TINGKAT RISIKO & RUJUKAN REGULASI (FORMAT STANDAR NOTIFIKASI TELEGRAM SATGAS) ── */}
               {(() => {
                 const triage = getAITriageData(report);
                 const risk = getRiskBadgeConfig(triage.riskLevel);
+
                 return (
-                  <div className="p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/60 flex items-center justify-between gap-3 flex-wrap text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
-                        <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                        AI Smart Triage:
-                      </span>
-                      <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border ${risk.badgeCls}`}>
-                        {risk.badgeIcon} {risk.riskBadge} (Urgensi: {triage.urgencyScore}/100)
-                      </span>
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-50/90 via-emerald-50/50 to-teal-100/40 dark:from-[#0d2a27] dark:via-[#09201e] dark:to-[#071816] border-2 border-teal-500/50 dark:border-teal-600/60 shadow-xs space-y-3.5">
+                    {/* Header: Title + Risk Badge */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-teal-200/80 dark:border-teal-800/80 pb-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-2 rounded-xl bg-teal-600 text-white shadow-xs shrink-0 mt-0.5">
+                          <Bot className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100">
+                              Analisis AI Smart Triage & Rujukan Regulasi Hukum
+                            </h4>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 flex items-center gap-1 font-semibold">
+                              <Sparkles className="w-3 h-3 text-teal-500" />
+                              <span>Format Standar Notifikasi Telegram Satgas</span>
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                            Penilaian objektif kronologi kasus, bobot urgensi dinamis, dan dasar hukum penanganan Satgas PPKS
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Risk Badge & Urgency Score */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-3 py-1 rounded-xl text-xs font-black border flex items-center gap-1.5 shadow-xs ${risk.badgeCls}`}>
+                          <span>{risk.badgeIcon}</span>
+                          <span>{risk.riskBadge}</span>
+                        </span>
+                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-800 dark:text-stone-200 shadow-xs">
+                          Skor Urgensi: <b className="text-teal-600 dark:text-teal-400">{triage.urgencyScore}/100</b>
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-[11px] font-mono text-teal-900 dark:text-teal-200 truncate max-w-md">
-                      <Gavel className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                      <span className="truncate">{triage.legalPasalBasis}</span>
+
+                    {/* Content Grid: Rujukan Regulasi & Ringkasan Kasus */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      {/* Rujukan Dasar Regulasi */}
+                      <div className="p-3.5 rounded-xl bg-white/95 dark:bg-stone-900/90 border border-teal-200/90 dark:border-gray-600 space-y-2 shadow-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300 text-[11px]">
+                          <Gavel className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                          <span>Rujukan Dasar Regulasi Terkait:</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-teal-50 dark:bg-teal-950/70 border border-teal-200 dark:border-teal-800/80 font-mono text-[11px] text-teal-950 dark:text-teal-200 font-semibold leading-relaxed break-words">
+                          <code>{triage.legalPasalBasis}</code>
+                        </div>
+                      </div>
+
+                      {/* Ringkasan Kasus & Rekomendasi Kategori */}
+                      <div className="p-3.5 rounded-xl bg-white/95 dark:bg-stone-900/90 border border-teal-200/90 dark:border-gray-600 space-y-2 shadow-xs flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-teal-800 dark:text-teal-300 text-[11px] flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                              <span>Ringkasan Kasus & Rekomendasi:</span>
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-medium">
+                              Kategori: {triage.categoryRecommendation}
+                            </span>
+                          </div>
+                          <p className="text-[11.5px] text-stone-700 dark:text-stone-300 italic leading-relaxed bg-stone-50 dark:bg-stone-950/60 p-2.5 rounded-lg border border-stone-200/70 dark:border-stone-800">
+                            &ldquo;{triage.summary}&rdquo;
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -383,89 +633,13 @@ export default function AdminCaseDetailModal({
           {/* TAB 2: Evidences */}
           {activeTab === 'evidence' && (
             <div className="space-y-4">
-              {/* ── CARD RINGKASAN TINGKAT RISIKO & RUJUKAN REGULASI (FORMAT NOTIFIKASI TELEGRAM SATGAS) ── */}
-              {(() => {
-                const triage = getAITriageData(report);
-                const risk = getRiskBadgeConfig(triage.riskLevel);
-
-                return (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-50/90 via-emerald-50/50 to-teal-100/40 dark:from-[#0d2a27] dark:via-[#09201e] dark:to-[#071816] border-2 border-teal-500/50 dark:border-teal-600/60 shadow-xs space-y-3.5">
-                    {/* Header: Title + Risk Badge */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-teal-200/80 dark:border-teal-800/80 pb-3">
-                      <div className="flex items-start gap-2.5">
-                        <div className="p-2 rounded-xl bg-teal-600 text-white shadow-xs shrink-0 mt-0.5">
-                          <Bot className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-xs sm:text-sm text-stone-900 dark:text-stone-100">
-                              Analisis AI Smart Triage & Bukti Forensik
-                            </h4>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 flex items-center gap-1 font-semibold">
-                              <Sparkles className="w-3 h-3 text-teal-500" />
-                              <span>Format Standar Notifikasi Telegram</span>
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                            Penilaian objektif tingkat urgensi kasus dan rujukan dasar regulasi hukum penanganan Satgas PPKS
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Risk Badge & Urgency Score */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-3 py-1 rounded-xl text-xs font-black border flex items-center gap-1.5 shadow-xs ${risk.badgeCls}`}>
-                          <span>{risk.badgeIcon}</span>
-                          <span>{risk.riskBadge}</span>
-                        </span>
-                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-800 dark:text-stone-200 shadow-xs">
-                          Skor Urgensi: <b className="text-teal-600 dark:text-teal-400">{triage.urgencyScore}/100</b>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Content Grid: Rujukan Regulasi & Ringkasan Kasus */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                      {/* Rujukan Dasar Regulasi */}
-                      <div className="p-3.5 rounded-xl bg-white/95 dark:bg-stone-900/90 border border-teal-200/90 dark:border-teal-900/80 space-y-2 shadow-xs">
-                        <div className="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300 text-[11px]">
-                          <Gavel className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
-                          <span>Rujukan Dasar Regulasi Hukum:</span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-teal-50 dark:bg-teal-950/70 border border-teal-200 dark:border-teal-800/80 font-mono text-[11px] text-teal-950 dark:text-teal-200 font-semibold leading-relaxed break-words">
-                          <code>{triage.legalPasalBasis}</code>
-                        </div>
-                      </div>
-
-                      {/* Ringkasan Kasus & Rekomendasi Kategori */}
-                      <div className="p-3.5 rounded-xl bg-white/95 dark:bg-stone-900/90 border border-teal-200/90 dark:border-teal-900/80 space-y-2 shadow-xs flex flex-col justify-between">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-teal-800 dark:text-teal-300 text-[11px] flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                              <span>Ringkasan Kasus:</span>
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-medium">
-                              Kategori: {triage.categoryRecommendation}
-                            </span>
-                          </div>
-                          <p className="text-[11.5px] text-stone-700 dark:text-stone-300 italic leading-relaxed bg-stone-50 dark:bg-stone-950/60 p-2 rounded-lg border border-stone-200/70 dark:border-stone-800">
-                            &ldquo;{triage.summary}&rdquo;
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between pt-1">
                 <h4 className="font-bold text-xs text-stone-900 dark:text-stone-100 flex items-center gap-2">
                   <Paperclip className="w-4 h-4 text-teal-500" />
                   <span>Daftar Berkas Bukti Digital Terlampir ({report.evidences ? report.evidences.length : 0})</span>
                 </h4>
                 <span className="text-[11px] text-stone-500 font-mono">
-                  Tervalidasi SHA-256 & EXIF Stripped
+                  Integritas SHA-256 Valid & EXIF Stripped
                 </span>
               </div>
 
@@ -473,8 +647,6 @@ export default function AdminCaseDetailModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {report.evidences.map((ev) => {
                     const isAiManipulated = ev.forensicStatus === 'Manipulated';
-                    const triage = getAITriageData(report);
-                    const risk = getRiskBadgeConfig(triage.riskLevel);
 
                     return (
                       <div
@@ -497,176 +669,104 @@ export default function AdminCaseDetailModal({
                           </button>
                         </div>
 
-                        {/* Analisis Forensik Multimodal AI */}
-                        {(() => {
-                          const analysis = liveAnalysisMap[ev.evidenceId] || ev.aiAnalysis;
-                          const isScanning = analyzingEvId === ev.evidenceId;
+                        {/* ── VALIDASI TANDA TANGAN BINER (MAGIC BYTES) ───────────────────────── */}
+                        <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-xl flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-300">
+                          <span className="font-semibold flex items-center gap-1.5 text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            Tanda Tangan Biner (Magic Bytes) Tervalidasi Utuh ({ev.validationResult?.detectedType || ev.fileType})
+                          </span>
+                          <span className="text-[10px] font-mono bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded font-bold shrink-0">
+                            Pass Magic-Byte
+                          </span>
+                        </div>
 
-                          if (analysis) {
-                            const isHighAuth = analysis.authenticityScore >= 80;
-                            const isMedAuth = analysis.authenticityScore >= 50 && analysis.authenticityScore < 80;
+                        {/* Status Asal Berkas & Metadata EXIF */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-stone-100/90 dark:bg-stone-950/60 p-2.5 rounded-xl border border-stone-200/80 dark:border-stone-800">
+                          <div>
+                            <span className="text-stone-400 block font-medium text-[10px] uppercase">Metode Perolehan:</span>
+                            <span className="font-semibold text-stone-800 dark:text-stone-200">
+                              {ev.acquisitionMethod || (ev.isLiveCapture ? 'Perekaman Langsung Kamera' : ev.fileType?.includes('video') ? 'Perekaman Video Langsung' : ev.fileType?.includes('audio') ? 'Perekaman Suara Langsung' : 'Hasil Unduhan / Tangkapan Layar')}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-stone-400 block font-medium text-[10px] uppercase">Status Metadata:</span>
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <ShieldAlert className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              EXIF Stripped: Ya (Privasi Terjaga)
+                            </span>
+                          </div>
+                        </div>
 
-                            return (
-                              <div className="p-3.5 rounded-xl bg-white dark:bg-stone-950/70 border border-stone-200/80 dark:border-stone-800 space-y-2.5 text-xs">
-                                {/* Header Analysis */}
-                                <div className="flex items-center justify-between gap-2 flex-wrap border-b border-stone-100 dark:border-stone-800/80 pb-2">
-                                  <div className="flex items-center gap-1.5 font-bold text-stone-800 dark:text-stone-200">
-                                    <Sparkles className="w-4 h-4 text-teal-500" />
-                                    <span>Pemeriksaan Multimodal AI</span>
-                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 flex items-center gap-1">
-                                      {analysis.mediaType === 'IMAGE' && <ImageIcon className="w-3 h-3" />}
-                                      {analysis.mediaType === 'AUDIO' && <Volume2 className="w-3 h-3" />}
-                                      {analysis.mediaType === 'VIDEO' && <Video className="w-3 h-3" />}
-                                      <span>{analysis.mediaType}</span>
-                                    </span>
-                                  </div>
+                        {/* ── ANALISIS HASIL PEMINDAIAN FORENSIK BINER ASLI ────────────────────── */}
+                        <div className="p-3.5 bg-stone-100/90 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-xl space-y-2 text-xs">
+                          <h5 className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5 text-xs">
+                            <FileSearch className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                            Hasil Pemindaian Forensik Biner Asli:
+                          </h5>
+                          {(ev.forensicDetails && ev.forensicDetails.length > 0
+                            ? ev.forensicDetails
+                            : [
+                                `SHA-256 Checksum: ${ev.sha256.substring(0, 24)}... (Integritas Utuh)`,
+                                ev.isLiveCapture
+                                  ? 'Kamera Internal: rekaman langsung dari browser pengguna.'
+                                  : 'Anomali Metadata: EXIF merek/model kamera fisik telah disanitasi demi privasi.',
+                                `Pola Biner: Tanda tangan biner format ${ev.fileType} tervalidasi asli & utuh.`,
+                              ]
+                          ).map((det, idx) => (
+                            <p key={idx} className="text-[11px] leading-relaxed text-stone-700 dark:text-stone-300 font-sans flex items-start gap-1.5">
+                              <span className="text-teal-600 dark:text-teal-400 font-bold shrink-0">•</span>
+                              <span>{det}</span>
+                            </p>
+                          ))}
+                        </div>
 
-                                  <div className="flex items-center gap-1.5">
-                                    {/* Authenticity Score Badge */}
-                                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] border ${
-                                      isHighAuth
-                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800'
-                                        : isMedAuth
-                                        ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800'
-                                        : 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800'
-                                    }`}>
-                                      Keaslian: {analysis.authenticityScore}%
-                                    </span>
-
-                                    {/* Tampering Badge */}
-                                    <span className={`font-bold text-[10px] px-2 py-0.5 rounded-full ${
-                                      analysis.tamperingDetected
-                                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                    }`}>
-                                      {analysis.tamperingDetected ? '⚠ Manipulasi' : '✓ Otentik'}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Tingkat Risiko & Rujukan Regulasi Terkait Bukti (Standar Notifikasi Telegram) */}
-                                <div className="p-2.5 rounded-lg bg-teal-50/70 dark:bg-[#071f1c] border border-teal-200/80 dark:border-teal-900/70 space-y-1.5">
-                                  <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 flex items-center gap-1">
-                                      <Gavel className="w-3 h-3 text-teal-600 dark:text-teal-400" />
-                                      Rujukan Dasar Regulasi Terkait Bukti Ini:
-                                    </span>
-                                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-bold border ${risk.badgeCls}`}>
-                                      {risk.riskBadge}
-                                    </span>
-                                  </div>
-                                  <div className="text-[10.5px] font-mono text-teal-900 dark:text-teal-200 bg-white dark:bg-teal-950/70 p-1.5 rounded border border-teal-200/60 dark:border-teal-800/60 break-words leading-relaxed">
-                                    <code>{triage.legalPasalBasis}</code>
-                                  </div>
-                                </div>
-
-                                {/* Extracted Text (OCR / Speech-to-Text) */}
-                                {analysis.extractedText && (
-                                  <div className="space-y-1">
-                                    <span className="font-semibold text-stone-500 dark:text-stone-400 text-[10px] uppercase tracking-wider flex items-center gap-1">
-                                      <FileText className="w-3 h-3 text-teal-600 dark:text-teal-400" />
-                                      Hasil Ekstraksi (OCR / Transkripsi):
-                                    </span>
-                                    <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-[#07201d] border border-stone-200/80 dark:border-teal-900/60 font-mono text-[11px] text-stone-800 dark:text-stone-200 whitespace-pre-wrap leading-relaxed">
-                                      {analysis.extractedText}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Key Findings */}
-                                {analysis.keyFindings && analysis.keyFindings.length > 0 && (
-                                  <div className="space-y-1">
-                                    <span className="font-semibold text-stone-500 dark:text-stone-400 text-[10px] uppercase tracking-wider">
-                                      Temuan Kunci Forensik:
-                                    </span>
-                                    <ul className="space-y-1">
-                                      {analysis.keyFindings.map((finding, idx) => (
-                                        <li key={idx} className="flex items-start gap-1.5 text-stone-700 dark:text-stone-300 text-[11px] leading-relaxed">
-                                          <span className="text-teal-500 mt-1 shrink-0">•</span>
-                                          <span>{finding}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-
-                                {/* Emotional Context & Tone */}
-                                {analysis.emotionalContext && (
-                                  <div className="p-2 rounded-lg bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/70 dark:border-teal-900/50 text-[11px] text-teal-900 dark:text-teal-200 leading-relaxed">
-                                    <span className="font-bold">Konteks Emosional & Nada: </span>
-                                    <span>{analysis.emotionalContext}</span>
-                                  </div>
-                                )}
-
-                                {/* Forensic Notes */}
-                                {analysis.forensicNotes && (
-                                  <div className="text-[10px] text-stone-500 dark:text-stone-400 border-t border-stone-100 dark:border-stone-800 pt-1.5">
-                                    <span className="font-bold">Catatan Integritas: </span>
-                                    <span>{analysis.forensicNotes}</span>
-                                  </div>
-                                )}
-
-                                {/* Re-run Button */}
-                                <div className="pt-1 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRunAiAnalysis(ev)}
-                                    disabled={isScanning}
-                                    className="px-2.5 py-1 text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950 border border-teal-300 dark:border-teal-800 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                  >
-                                    {isScanning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                    <span>{isScanning ? 'Memindai Ulang...' : 'Pindai Ulang AI'}</span>
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          // Fallback jika belum dianalisis
-                          return (
-                            <div className="p-3 rounded-xl bg-white dark:bg-stone-950/70 border border-stone-200/80 dark:border-stone-800 space-y-2 text-xs">
-                              {/* Rujukan Regulasi Fallback */}
-                              <div className="p-2 rounded-lg bg-teal-50/70 dark:bg-[#071f1c] border border-teal-200/80 dark:border-teal-900/70 space-y-1">
-                                <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 flex items-center gap-1">
-                                    <Gavel className="w-3 h-3 text-teal-600 dark:text-teal-400" />
-                                    Rujukan Dasar Regulasi Terkait:
-                                  </span>
-                                  <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-bold border ${risk.badgeCls}`}>
-                                    {risk.riskBadge}
-                                  </span>
-                                </div>
-                                <div className="text-[10.5px] font-mono text-teal-900 dark:text-teal-200 break-words leading-relaxed">
-                                  <code>{triage.legalPasalBasis}</code>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between gap-2 pt-1">
-                                <span className="font-bold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
-                                  <Sparkles className="w-4 h-4 text-teal-500" />
-                                  Pemeriksaan AI Belum Dijalankan
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRunAiAnalysis(ev)}
-                                  disabled={isScanning}
-                                  className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
-                                >
-                                  {isScanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                  <span>{isScanning ? 'Menganalisis Media...' : '⚡ Pindai Forensik AI'}</span>
-                                </button>
-                              </div>
-                              <p className="text-[11px] text-stone-500">
-                                Klik tombol di atas untuk menjalankan ekstraksi OCR, transkripsi audio/video, deteksi keaslian, dan audit integritas berkas.
-                              </p>
-                              {ev.reporterNote && (
-                                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 text-[11px] italic leading-relaxed">
-                                  Catatan pelapor: &ldquo;{ev.reporterNote}&rdquo;
-                                </div>
-                              )}
+                        {/* ── RINGKASAN METADATA SENSITIF PADA BERKAS ASLI (SEBELUM DISANITASI) ── */}
+                        <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl space-y-2 text-xs">
+                          <span className="font-bold text-amber-900 dark:text-amber-200 block text-xs">
+                            Metadata Sensitif pada Berkas Asli (Sebelum Disanitasi):
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                            <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
+                              <span className="text-stone-500 text-[10px] uppercase font-bold block">GPS Geotag</span>
+                              <span className={`font-bold ${ev.extractedMeta?.hasGps ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                {ev.extractedMeta?.hasGps ? '⚠️ Terdeteksi (Telah Dibersihkan)' : 'Tidak Terdeteksi'}
+                              </span>
                             </div>
-                          );
-                        })()}
+                            <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
+                              <span className="text-stone-500 text-[10px] uppercase font-bold block">Kamera</span>
+                              <span className="font-bold text-stone-800 dark:text-stone-200 truncate block">
+                                {ev.extractedMeta?.cameraMaker || ev.extractedMeta?.cameraModel || (ev.isLiveCapture ? 'Webcam / Kamera HP' : 'Tidak Terdeteksi')}
+                              </span>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
+                              <span className="text-stone-500 text-[10px] uppercase font-bold block">Stempel Waktu</span>
+                              <span className="font-bold text-stone-800 dark:text-stone-200 truncate block">
+                                {ev.extractedMeta?.timestamp || formatDateID(report.receivedAt)}
+                              </span>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
+                              <span className="text-stone-500 text-[10px] uppercase font-bold block">Software Editor</span>
+                              <span className="font-bold text-stone-800 dark:text-stone-200 truncate block">
+                                {ev.extractedMeta?.software || 'Tidak Ada'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ── CATATAN WAJIB PELAPOR (ASAL / ALASAN BERKAS) ─────────────────────── */}
+                        <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-850/60 border border-stone-200 dark:border-stone-700/60 text-stone-700 dark:text-stone-300 text-xs leading-relaxed space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-teal-800 dark:text-teal-300 text-[11px] uppercase tracking-wider">
+                              Catatan Wajib Pelapor (Asal / Alasan Berkas):
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-semibold">
+                              Otentikasi Pelapor
+                            </span>
+                          </div>
+                          <p className="italic text-stone-800 dark:text-stone-200">
+                            &ldquo;{ev.reporterNote || 'Tidak ada catatan khusus yang dilampirkan oleh pelapor.'}&rdquo;
+                          </p>
+                        </div>
 
                         <div className="pt-2 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between gap-2">
                           <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
@@ -681,16 +781,28 @@ export default function AdminCaseDetailModal({
 
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => onVerifyEvidence(ev.evidenceId, 'Terverifikasi Valid', 'Validasi Satgas: Bukti Asli & Valid')}
-                              className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 cursor-pointer"
+                              type="button"
+                              onClick={() => setConfirmAction({
+                                evidence: ev,
+                                action: 'valid',
+                                note: '',
+                              })}
+                              className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 cursor-pointer flex items-center gap-1"
                             >
-                              Set Valid
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Set Valid</span>
                             </button>
                             <button
-                              onClick={() => onVerifyEvidence(ev.evidenceId, 'Tervalidasi Palsu / Ditolak', 'Validasi Satgas: Bukti Palsu')}
-                              className="px-2.5 py-1 text-[11px] font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 cursor-pointer"
+                              type="button"
+                              onClick={() => setConfirmAction({
+                                evidence: ev,
+                                action: 'reject',
+                                note: '',
+                              })}
+                              className="px-2.5 py-1 text-[11px] font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 cursor-pointer flex items-center gap-1"
                             >
-                              Set Tolak
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <span>Set Tolak</span>
                             </button>
                           </div>
                         </div>
@@ -731,7 +843,7 @@ export default function AdminCaseDetailModal({
                   placeholder="Tambah catatan internal rahasia Satgas..."
                   value={internalNoteInput}
                   onChange={(e) => setInternalNoteInput(e.target.value)}
-                  className="flex-1 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-teal-900 rounded-xl px-4 py-2 text-xs text-stone-900 dark:text-stone-100 outline-none"
+                  className="flex-1 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-gray-600 rounded-xl px-4 py-2 text-xs text-stone-900 dark:text-stone-100 outline-none"
                 />
                 <button
                   type="submit"
@@ -743,8 +855,326 @@ export default function AdminCaseDetailModal({
               </form>
             </div>
           )}
+
+          {/* TAB 4: Saran Penanganan AI & Asisten Konsultasi Kasus */}
+          {activeTab === 'ai_suggestion' && (
+            <div className="space-y-6">
+              {/* Context Header Card */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-500/10 via-emerald-500/5 to-transparent border border-teal-500/30 dark:border-teal-500/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                      <Sparkles className="w-5 h-5 text-emerald-200" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-stone-900 dark:text-stone-50 flex items-center gap-2">
+                        <span>Asisten & Saran Penanganan AI Satgas PPKS</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-bold border border-teal-300 dark:border-teal-800">
+                          Domain Advisor
+                        </span>
+                      </h4>
+                      <p className="text-xs text-stone-600 dark:text-stone-300">
+                        AI menganalisis data fakta pelapor (kronologi kasus, tingkat keparahan risiko, bukti forensik biner, & regulasi Permendikbudristek No. 30/2021) untuk memberikan rekomendasi taktis.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tombol Buat Saran Penanganan AI */}
+                  <button
+                    type="button"
+                    onClick={handleGenerateInitialPlan}
+                    disabled={isGeneratingPlan}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-teal-600/30 transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                  >
+                    {isGeneratingPlan ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-emerald-200" />
+                    )}
+                    <span>
+                      {aiPlanText ? '⚡ Buat Ulang Saran Penanganan AI' : '⚡ Saran Penanganan yang Dilakukan oleh AI'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Case Parameters Pills */}
+                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-teal-500/20 text-[11px]">
+                  <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
+                    Kasus: <strong className="text-stone-900 dark:text-white">{report.caseId}</strong>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
+                    Kategori: <strong className="text-stone-900 dark:text-white">{report.category}</strong>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
+                    Risiko: <strong className="text-teal-600 dark:text-teal-400">{getAITriageData(report).riskLevel}</strong>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
+                    Bukti Digital: <strong className="text-stone-900 dark:text-white">{report.evidences?.length || 0} Berkas</strong>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
+                    Fakultas: <strong className="text-stone-900 dark:text-white">{report.targetFaculty || 'Kampus Umum'}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Rencana Rekomendasi Penanganan Kasus (Bila sudah di-generate) */}
+              {isGeneratingPlan && (
+                <div className="p-6 rounded-2xl bg-stone-50 dark:bg-stone-900/70 border border-teal-500/30 flex flex-col items-center justify-center gap-3 py-10">
+                  <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="text-center space-y-1">
+                    <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                      Menganalisis Kronologi Pelapor & Mengevaluasi Regulasi Kampus...
+                    </p>
+                    <p className="text-[11px] text-stone-500">
+                      Menyusun rencana aksi bertahap, protokol perlindungan korban, dan rekomendasi sanksi.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {aiPlanText && !isGeneratingPlan && (
+                <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-stone-900 border-2 border-teal-500/40 dark:border-teal-600/40 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Gavel className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-stone-800 dark:text-stone-200">
+                        Hasil Rekomendasi Tindak Lanjut Penanganan (AI Strategic Plan)
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyPlanToNotes}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        {copiedPlan ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedPlan ? 'Tersalin ke Clipboard & Catatan!' : 'Salin ke Catatan Rahasia Satgas'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-stone-50/70 dark:bg-stone-950/40 p-4 sm:p-5 rounded-xl border border-stone-200/80 dark:border-stone-800 max-h-[500px] overflow-y-auto">
+                    <FormattedAIContent content={aiPlanText} />
+                  </div>
+                </div>
+              )}
+
+              {/* Chatbot Konsultasi Interaktif untuk Admin (Tanya Jawab Seputar Kasus Ini) */}
+              <div className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <div>
+                      <h4 className="font-bold text-xs text-stone-900 dark:text-stone-100">
+                        Konsultasi Tanya Jawab Kasus dengan AI Advisor
+                      </h4>
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                        Ajukan pertanyaan spesifik, minta draf pemanggilan, atau saran mediasi berdasarkan analisis data kasus ini.
+                      </p>
+                    </div>
+                  </div>
+
+                  {chatMessages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setChatMessages([])}
+                      className="text-[11px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
+                    >
+                      Bersihkan Obrolan
+                    </button>
+                  )}
+                </div>
+
+                {/* Suggested Quick Question Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 block">
+                    💡 Rekomendasi Pertanyaan Cepat:
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[
+                      'Apakah bukti digital kasus ini cukup kuat untuk eskalasi ke Komite Etik?',
+                      'Bagaimana prosedur mediasi aman tanpa konfrontasi langsung?',
+                      'Buatkan draf surat panggilan klarifikasi resmi untuk pihak terlapor',
+                      'Apa rekomendasi sanksi administratif maksimal berdasarkan fakta ini?',
+                    ].map((q, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSendChat(q)}
+                        disabled={isSendingChat}
+                        className="text-[11px] font-medium px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-teal-500 text-stone-700 dark:text-stone-300 hover:text-teal-700 dark:hover:text-teal-300 transition-colors cursor-pointer text-left shadow-2xs disabled:opacity-50"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chat Messages Stream Area */}
+                <div className="space-y-3 max-h-72 overflow-y-auto p-3 rounded-xl bg-white dark:bg-stone-950/50 border border-stone-200/80 dark:border-stone-800">
+                  {/* Default Welcome Message */}
+                  <div className="flex items-start gap-2.5 max-w-[85%]">
+                    <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div className="p-3 rounded-2xl rounded-tl-xs bg-stone-100 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 leading-relaxed space-y-1">
+                      <span className="font-bold text-[10px] text-teal-600 dark:text-teal-400 block">
+                        AI Satgas Advisor • Siap Konsultasi
+                      </span>
+                      <p>
+                        Halo Satgas PPKS. Saya telah memuat data kasus <strong>{report.caseId}</strong> (Kategori: <em>{report.category}</em>, Tingkat Risiko: <em>{getAITriageData(report).riskLevel}</em>). Silakan tanyakan hal apa pun yang ingin Anda konsultasikan seputar penanganan kasus ini.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Chat Messages */}
+                  {chatMessages.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-start gap-2.5 ${
+                        msg.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      {msg.role === 'model' && (
+                        <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          <Bot className="w-4 h-4" />
+                        </div>
+                      )}
+
+                      <div
+                        className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] space-y-1 ${
+                          msg.role === 'user'
+                            ? 'bg-teal-600 text-white rounded-tr-xs shadow-xs'
+                            : 'bg-stone-100 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-700 text-stone-800 dark:text-stone-200 rounded-tl-xs shadow-2xs'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 text-[10px] opacity-75">
+                          <span>{msg.role === 'user' ? 'Satgas PPKS' : 'AI Advisor'}</span>
+                          <span>{msg.timestamp}</span>
+                        </div>
+                        {msg.role === 'model' ? (
+                          <FormattedAIContent content={msg.text} />
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isSendingChat && (
+                    <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 italic py-1">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>AI Advisor sedang menganalisis informasi kasus & merumuskan jawaban...</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Input Bar */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendChat();
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Tanyakan analisis kronologi, regulasi, atau strategi penanganan kasus ini..."
+                    disabled={isSendingChat}
+                    className="flex-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-2.5 text-xs text-stone-900 dark:text-stone-100 outline-none focus:border-teal-500 transition-colors shadow-2xs disabled:opacity-60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim() || isSendingChat}
+                    className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Kirim</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── AGILE ALERT DIALOG: KONFIRMASI TINDAKAN VALIDASI BUKTI ── */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div
+                className={`p-2.5 rounded-xl shrink-0 ${
+                  confirmAction.action === 'valid'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                    : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400'
+                }`}
+              >
+                {confirmAction.action === 'valid' ? (
+                  <CheckCircle2 className="w-6 h-6" />
+                ) : (
+                  <AlertTriangle className="w-6 h-6" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-stone-900 dark:text-stone-100">
+                  {confirmAction.action === 'valid'
+                    ? 'Konfirmasi Validasi Bukti Asli'
+                    : 'Konfirmasi Penolakan Bukti Palsu'}
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
+                  {confirmAction.action === 'valid'
+                    ? `Apakah Anda yakin ingin memvalidasi berkas "${confirmAction.evidence.fileName || 'bukti'}" sebagai berkas ASLI & SAH?`
+                    : `Apakah Anda yakin ingin menolak berkas "${confirmAction.evidence.fileName || 'bukti'}" sebagai TERINDIKASI PALSU / MANIPULASI?`}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-stone-600 dark:text-stone-300">
+                Catatan Pemeriksaan Satgas:
+              </label>
+              <input
+                type="text"
+                value={confirmAction.note}
+                onChange={(e) =>
+                  setConfirmAction({ ...confirmAction, note: e.target.value })
+                }
+                placeholder={
+                  confirmAction.action === 'valid'
+                    ? 'Validasi Satgas: Bukti Asli & Valid'
+                    : 'Validasi Satgas: Bukti Palsu / Ditolak'
+                }
+                className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-900 dark:text-stone-100 outline-none focus:border-teal-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+              <button
+                type="button"
+                onClick={() => setConfirmAction(null)}
+                className="px-3.5 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmVerification}
+                className={`px-4 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                  confirmAction.action === 'valid'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

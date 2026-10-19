@@ -104,10 +104,10 @@ export default function ViolationsCatalogSection() {
         </div>
 
         <Link
-          href="/education"
+          href="/support"
           className="inline-flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-400 hover:text-teal-900 transition-colors group cursor-pointer shrink-0"
         >
-          <span>Lihat Edukasi Selengkapnya</span>
+          <span>Lihat Layanan & Edukasi Selengkapnya</span>
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
@@ -136,8 +136,8 @@ export default function ViolationsCatalogSection() {
                 onClick={() => setExpandedId(isExpanded ? null : item.id)}
                 className={`py-5 px-5 md:px-7 rounded-2xl transition-all duration-300 cursor-pointer relative overflow-hidden ${
                   isExpanded
-                    ? 'bg-[#f4f4f4] dark:bg-[#163432] border-l-4 border-l-teal-800 shadow-sm border border-stone-300 dark:border-stone-600'
-                    : 'bg-[#f0f0f0]/80 dark:bg-[#163432] hover:bg-[#f7f7f7] dark:hover:bg-[#163432] border border-transparent hover:border-stone-300 dark:hover:border-stone-600 border-l-2 border-l-transparent hover:border-l-teal-800'
+                    ? 'bg-[#f4f4f4] dark:bg-gray-700 border-l-4 border-l-teal-600 shadow-sm border border-stone-300 dark:border-gray-600'
+                    : 'bg-[#f0f0f0]/80 dark:bg-gray-700 hover:bg-[#f7f7f7] dark:hover:bg-gray-600 border border-transparent hover:border-stone-300 dark:hover:border-gray-600 border-l-2 border-l-transparent hover:border-l-teal-600'
                 }`}
               >
                 {/* Header Row */}

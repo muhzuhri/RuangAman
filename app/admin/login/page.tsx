@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Lock, User, Eye, EyeOff, ShieldAlert, LogIn, ArrowLeft, ShieldCheck, Sparkles, KeyRound, Sun, Moon, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { checkIsAdminAuthenticated, setAdminAuthSession, clearAdminAuthSession } from '@/lib/adminUtils';
 
@@ -24,25 +25,8 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     setMounted(true);
-    try {
-      // Jika pengguna datang dengan parameter ?logout=true atau ?reset=true, bersihkan sesi secara total
-      if (typeof window !== 'undefined' && (window.location.search.includes('logout=true') || window.location.search.includes('reset=true'))) {
-        clearAdminAuthSession();
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      // Jika terautentikasi dan sesi sinkron, arahkan ke dasbor
-      if (checkIsAdminAuthenticated()) {
-        router.replace('/admin');
-        const timer = setTimeout(() => setIsCheckingAuth(false), 800);
-        return () => clearTimeout(timer);
-      }
-    } catch (e) {
-      console.warn('Storage check exception:', e);
-    }
     setIsCheckingAuth(false);
-  }, [router]);
+  }, []);
 
   const isDark = resolvedTheme === 'dark';
 
@@ -132,8 +116,15 @@ export default function AdminLoginPage() {
           className="w-full max-w-md"
         >
           <div className="text-center mb-8 space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-teal-700 via-teal-600 to-teal-500 flex items-center justify-center mx-auto shadow-[0_0_40px_rgba(13,148,136,0.28)] ring-4 ring-teal-600/10">
-              <ShieldAlert className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 rounded-2xl bg-gray-700 dark:bg-gray-700 border border-gray-600 flex items-center justify-center mx-auto shadow-lg p-2.5">
+              <Image
+                src="/images/loogooo.png"
+                alt="RuangAman Logo"
+                width={64}
+                height={64}
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight">
@@ -145,10 +136,10 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          <div className="bg-[#f4f4f4] dark:bg-stone-800/90 backdrop-blur-xl rounded-3xl border border-stone-300 dark:border-stone-600 p-6 sm:p-8 shadow-xl space-y-6">
+          <div className="bg-white dark:bg-gray-700 backdrop-blur-xl rounded-3xl border border-stone-200 dark:border-gray-600 p-6 sm:p-8 shadow-xl space-y-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider block">
+                <label className="text-[11px] font-bold text-stone-600 dark:text-stone-300 uppercase tracking-wider block">
                   Username / Email Internal
                 </label>
                 <div className="relative">
@@ -158,14 +149,14 @@ export default function AdminLoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Masukkan username"
-                    className="w-full bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-600 rounded-xl pl-11 pr-4 py-3.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
+                    className="w-full bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-xl pl-11 pr-4 py-3.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider block">
+                <label className="text-[11px] font-bold text-stone-600 dark:text-stone-300 uppercase tracking-wider block">
                   Kata Sandi (Password)
                 </label>
                 <div className="relative">
@@ -175,7 +166,7 @@ export default function AdminLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-600 rounded-xl pl-11 pr-12 py-3.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
+                    className="w-full bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-xl pl-11 pr-12 py-3.5 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                     required
                   />
                   <button
@@ -203,7 +194,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-teal-700 hover:bg-teal-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm cursor-pointer"
+                className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
@@ -222,17 +213,17 @@ export default function AdminLoginPage() {
               </button>
             </form>
 
-            <div className="bg-white dark:bg-stone-950/60 border border-stone-300 dark:border-stone-600 rounded-2xl p-4 text-center space-y-3">
+            <div className="bg-stone-50 dark:bg-gray-800/90 border border-stone-200 dark:border-gray-600 rounded-2xl p-4 text-center space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-stone-500 dark:text-stone-400 font-semibold flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-teal-700 dark:text-teal-400" /> Akses Mode Demo:
+                  <KeyRound className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> Akses Mode Demo:
                 </span>
-                <span className="text-[11px] font-mono text-teal-800 dark:text-teal-300 font-bold bg-teal-50 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-800 px-2 py-0.5 rounded-md">
+                <span className="text-[11px] font-mono text-teal-700 dark:text-teal-300 font-bold bg-teal-50 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-800 px-2 py-0.5 rounded-md">
                   Satgas 2026
                 </span>
               </div>
 
-              <div className="text-xs text-stone-500 dark:text-stone-400 text-left bg-[#f4f4f4] dark:bg-stone-900 p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 font-mono space-y-1">
+              <div className="text-xs text-stone-500 dark:text-stone-400 text-left bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-stone-200 dark:border-gray-700 font-mono space-y-1">
                 <p>Username: <strong className="text-stone-800 dark:text-stone-200">admin</strong></p>
                 <p>Password: <strong className="text-stone-800 dark:text-stone-200">satgas2026</strong></p>
               </div>
@@ -240,9 +231,9 @@ export default function AdminLoginPage() {
               <button
                 type="button"
                 onClick={handleFillDemo}
-                className="w-full bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-semibold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full bg-stone-100 hover:bg-stone-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-teal-700 dark:text-teal-300 border border-stone-300 dark:border-gray-500 font-semibold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5 text-teal-700 dark:text-teal-400" />
+                <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                 Isi Otomatis Kredensial Demo
               </button>
             </div>

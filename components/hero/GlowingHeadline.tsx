@@ -17,7 +17,7 @@ export default function GlowingHeadline() {
       <motion.div
         variants={FADE_UP}
         transition={FADE_UP_TRANSITION}
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-300 dark:border-teal-900 bg-[#f0f0f0] dark:bg-[#163432] text-stone-700 dark:text-stone-200 text-xs md:text-sm font-medium"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-300 dark:border-gray-600 bg-[#f0f0f0] dark:bg-gray-700 text-stone-700 dark:text-stone-200 text-xs md:text-sm font-medium"
       >
         <span className="inline-flex rounded-full h-2 w-2 bg-teal-700" />
         <span>Pelaporan anonim terenkripsi untuk civitas kampus</span>
@@ -25,10 +25,10 @@ export default function GlowingHeadline() {
 
       <motion.div variants={FADE_UP} transition={FADE_UP_TRANSITION} className="space-y-2">
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.12] text-stone-800 dark:text-stone-50">
-          Ruang aman dan{' '}
-          <span className="text-teal-800 dark:text-teal-400">bebas retaliasi</span>
+          Ruang Aman{' '}
+          <span className="text-teal-800 dark:text-teal-400">Tanpa Rasa Takut</span>
           <br />
-          <span className="text-stone-700 dark:text-stone-200">untuk mahasiswa.</span>
+          <span className="text-stone-700 dark:text-stone-200">untuk Seluruh Sivitas Akademika.</span>
         </h1>
       </motion.div>
 
@@ -37,7 +37,7 @@ export default function GlowingHeadline() {
         transition={FADE_UP_TRANSITION}
         className="text-base sm:text-lg text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl"
       >
-        Sistem pelaporan independen yang menjaga kerahasiaan pelapor kekerasan, perundungan siber, dan intimidasi. Identitas tidak pernah tersimpan di server.
+        Sistem pengaduan rahasia berbasis Zero-Knowledge Architecture. Melindungi pelapor dari perundungan, intimidasi, dan kekerasan tanpa mencatat identitas diri di server.
       </motion.p>
 
       <motion.div
@@ -47,11 +47,11 @@ export default function GlowingHeadline() {
       >
         <div className="flex items-center gap-2">
           <Fingerprint className="w-4 h-4 text-teal-800 dark:text-teal-400" />
-          <span>Tanpa login / NIK / NIM</span>
+          <span>Tanpa login / Informasi Pribasi</span>
         </div>
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-teal-800 dark:text-teal-400" />
-          <span>Enkripsi sisi klien (AES-256)</span>
+          <span>Keamanan sisi klien </span>
         </div>
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-teal-800 dark:text-teal-400" />

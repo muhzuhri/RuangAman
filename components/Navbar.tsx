@@ -29,34 +29,34 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Beranda', path: '/' },
-    { name: 'Formulir', path: '/report' },
+    { name: 'Pelaporan', path: '/report' },
     { name: 'Pelacakan', path: '/track' },
-    { name: 'Bantuan & PFA', path: '/support' },
-    { name: 'Edukasi', path: '/education' },
+    { name: 'Layanan & Informasi', path: '/support' },
+    { name: 'Transparansi', path: '/transparency' },
   ];
 
   const isDark = resolvedTheme === 'dark';
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 bg-teal-900 dark:bg-mauve-900 backdrop-blur-md transition-colors ${
+      className={`fixed top-0 inset-x-0 z-50 bg-gray-700 dark:bg-slate-800 backdrop-blur-md transition-colors ${
         isScrolled
-          ? 'border-b border-stone-800 dark:border-teal-900 shadow-md'
-          : 'border-b border-stone-800/80 dark:border-teal-800/80'
+          ? 'border-b border-gray-600 shadow-md'
+          : 'border-b border-gray-600/80'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 h-18 flex items-center justify-between py-4">
-        <Link href="/" className="flex items-center gap-1 group">
-          <div className="w-13 h-12 rounded-xl overflow-hidden shrink-0 group-hover:opacity-90 transition-opacity">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 group-hover:opacity-90 transition-opacity">
             <Image
-              src="/images/logii.png"
+              src="/images/loogooo.png"
               alt="RuangAman Logo"
-              width={48}
-              height={48}
-              className="w-full h-full object-cover"
+              width={50}
+              height={50}
+              className="w-full h-full object-contain"
             />
           </div>
-          <span className="text-lg font-bold tracking-tight text-white dark:text-white group-hover:text-teal-400 dark:group-hover:text-teal-400 transition-colors">
+          <span className="text-lg font-bold tracking-tight text-white group-hover:text-teal-400 transition-colors">
             RuangAman
           </span>
         </Link>
@@ -71,15 +71,15 @@ export default function Navbar() {
                 href={link.path}
                 className={`relative px-4 py-2 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'text-teal-300 dark:text-teal-400 font-semibold bg-teal-950/60 dark:bg-teal-950/50'
-                    : 'text-stone-300 dark:text-stone-300 hover:text-white dark:hover:text-white hover:bg-stone-800 dark:hover:bg-stone-800'
+                    ? 'text-teal-300 font-semibold bg-gray-600/80 shadow-xs'
+                    : 'text-stone-200 hover:text-white hover:bg-gray-600/60'
                 }`}
               >
                 {link.name}
                 {isActive && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute inset-0 border border-teal-500/50 dark:border-teal-700 rounded-lg"
+                    className="absolute inset-0 border border-teal-400/50 rounded-lg"
                     initial={false}
                     transition={{ type: "spring", stiffness: 350, damping: 32 }}
                   />
@@ -94,7 +94,7 @@ export default function Navbar() {
           {mounted && (
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="p-2 rounded-xl border border-stone-700 dark:border-stone-600 bg-[#163432] hover:bg-stone-700 dark:bg-[#163432] dark:hover:bg-stone-900 text-stone-200 dark:text-stone-200 hover:text-teal-400 transition-colors cursor-pointer"
+              className="p-2 rounded-xl border border-gray-600 bg-gray-800 hover:bg-gray-600 text-stone-200 hover:text-teal-400 transition-colors cursor-pointer"
               aria-label="Toggle theme"
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
@@ -111,10 +111,10 @@ export default function Navbar() {
             onClick={() => {
               document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
             }}
-            className="flex items-center gap-2.5 text-xs font-semibold bg-[#163432] hover:bg-stone-700 border border-stone-700 text-stone-200 hover:text-white rounded-xl px-3.5 py-2 transition-colors dark:bg-[#163432] dark:hover:bg-stone-900 dark:border-stone-600 dark:text-stone-200 cursor-pointer"
+            className="flex items-center gap-2.5 text-xs font-semibold bg-gray-800 hover:bg-gray-600 border border-gray-600 text-stone-200 hover:text-white rounded-xl px-3.5 py-2 transition-colors cursor-pointer"
           >
             <span>Pusat Perintah</span>
-            <span className="flex items-center gap-0.5 border border-stone-600 dark:border-stone-600 rounded-md bg-[#163432] dark:bg-stone-900 px-1.5 py-0.5 font-sans text-stone-200 dark:text-stone-200 font-bold text-[11px]">
+            <span className="flex items-center gap-0.5 border border-gray-500 rounded-md bg-gray-700 px-1.5 py-0.5 font-sans text-stone-200 font-bold text-[11px]">
               <span>⌘</span>K
             </span>
           </button>
@@ -125,14 +125,14 @@ export default function Navbar() {
           {mounted && (
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="p-2 rounded-lg border border-stone-700 dark:border-stone-700 bg-stone-800 dark:bg-stone-800 text-stone-200 dark:text-stone-300"
+              className="p-2 rounded-lg border border-gray-600 bg-gray-800 text-stone-200"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-amber-200" />}
             </button>
           )}
           <button
-            className="p-2 text-stone-300 dark:text-stone-300 hover:text-white dark:hover:text-white hover:bg-stone-800 dark:hover:bg-stone-800 rounded-lg transition-colors"
+            className="p-2 text-stone-200 hover:text-white hover:bg-gray-600 rounded-lg transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -149,7 +149,7 @@ export default function Navbar() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden overflow-hidden bg-[#e4e4e4] dark:bg-[#0c2b29] border-b border-stone-300 dark:border-teal-900/60"
+            className="md:hidden overflow-hidden bg-gray-700 border-b border-gray-600 text-white"
           >
             <div className="px-6 py-5 space-y-2 flex flex-col">
               {navLinks.map((link) => (
@@ -159,14 +159,14 @@ export default function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                     pathname === link.path
-                      ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800'
-                      : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                      ? 'bg-gray-600 text-teal-300 border border-gray-500 font-semibold'
+                      : 'text-stone-200 hover:bg-gray-600/70'
                   }`}
                 >
                   {link.name}
                 </Link>
               ))}
-              <div className="pt-3 mt-1 border-t border-stone-100 dark:border-stone-800 space-y-2">
+              <div className="pt-3 mt-1 border-t border-gray-600 space-y-2">
                 <Link
                   href="/report"
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -177,7 +177,7 @@ export default function Navbar() {
                 <Link
                   href="/admin/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-stone-500 dark:text-stone-400 hover:text-teal-700 dark:hover:text-teal-300 py-2 transition-colors"
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-stone-300 hover:text-teal-300 py-2 transition-colors"
                 >
                   Portal Internal Satgas (Admin)
                 </Link>

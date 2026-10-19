@@ -153,9 +153,13 @@ export function handleDownloadEvidence(ev: Evidence) {
 export function setAdminAuthSession() {
   if (typeof window !== 'undefined') {
     try {
+      // Sesi hanya aktif selama tab/browser terbuka (sessionStorage)
       sessionStorage.setItem('isAdminLoggedIn', 'true');
-      localStorage.setItem('isAdminLoggedIn', 'true');
-      document.cookie = 'isAdminLoggedIn=true; path=/; max-age=86400; SameSite=Lax';
+      sessionStorage.setItem('adminLoginTimestamp', Date.now().toString());
+      // Hapus localStorage agar tidak tersimpan permanen di hard drive pengguna
+      localStorage.removeItem('isAdminLoggedIn');
+      // Cookie sesi murni tanpa max-age/expires (otomatis terhapus saat browser ditutup)
+      document.cookie = 'isAdminLoggedIn=true; path=/; SameSite=Lax';
     } catch (e) {
       console.warn('Set admin session warning:', e);
     }
@@ -166,6 +170,7 @@ export function clearAdminAuthSession() {
   if (typeof window !== 'undefined') {
     try {
       sessionStorage.removeItem('isAdminLoggedIn');
+      sessionStorage.removeItem('adminLoginTimestamp');
       localStorage.removeItem('isAdminLoggedIn');
       document.cookie = 'isAdminLoggedIn=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
     } catch (e) {
@@ -177,25 +182,22 @@ export function clearAdminAuthSession() {
 export function checkIsAdminAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    const hasCookie = document.cookie.includes('isAdminLoggedIn=true');
-    const hasSession = sessionStorage.getItem('isAdminLoggedIn') === 'true';
-    const hasLocal = localStorage.getItem('isAdminLoggedIn') === 'true';
+    // Bersihkan residu lama jika masih ada di localStorage
+    localStorage.removeItem('isAdminLoggedIn');
 
-    // If any auth token exists, keep all stores synchronized to prevent redirect mismatch
-    if (hasCookie || hasSession || hasLocal) {
-      if (!hasCookie) {
-        document.cookie = 'isAdminLoggedIn=true; path=/; max-age=86400; SameSite=Lax';
-      }
-      if (!hasSession) {
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-      }
-      if (!hasLocal) {
-        localStorage.setItem('isAdminLoggedIn', 'true');
-      }
+    const hasSession = sessionStorage.getItem('isAdminLoggedIn') === 'true';
+    const hasCookie = document.cookie.includes('isAdminLoggedIn=true');
+
+    // Wajib ada di sessionStorage DAN Cookie sesi aktif
+    if (hasSession && hasCookie) {
       return true;
     }
+
+    // Jika salah satu tidak ada, anggap belum login & bersihkan semua
+    clearAdminAuthSession();
+    return false;
   } catch (e) {
     console.warn('Auth check warning:', e);
+    return false;
   }
-  return false;
 }

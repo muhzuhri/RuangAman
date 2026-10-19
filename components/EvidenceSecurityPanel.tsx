@@ -60,9 +60,9 @@ export function EvidenceSecurityPanel({
   };
 
   return (
-    <div className="bg-white/90 dark:bg-[#163432] backdrop-blur-xl border border-stone-200 dark:border-teal-900 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+    <div className="bg-white/90 dark:bg-gray-700 backdrop-blur-xl border border-stone-200 dark:border-gray-600 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
       {/* ── HEADER: File Info & Remove Button ─────────────────────────────── */}
-      <div className="flex items-start justify-between gap-3 border-b border-stone-200 dark:border-teal-900/80 pb-4">
+      <div className="flex items-start justify-between gap-3 border-b border-stone-200 dark:border-gray-600 pb-4">
         <div className="space-y-1 min-w-0 pr-4">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/80 px-2.5 py-0.5 rounded-md border border-teal-200 dark:border-teal-800">
@@ -110,7 +110,7 @@ export function EvidenceSecurityPanel({
 
       {/* ── ANALISIS METADATA & FORENSIK ───────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="p-4 bg-stone-50 dark:bg-[#0a2220] border border-stone-200 dark:border-teal-900 rounded-xl space-y-2 text-xs">
+        <div className="p-4 bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-xl space-y-2 text-xs">
           <h5 className="font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5 text-xs">
             <FileSearch className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             Hasil Pemindaian Forensik Biner Asli:
@@ -130,25 +130,25 @@ export function EvidenceSecurityPanel({
           </span>
           {meta && (meta.hasGps || meta.cameraMaker || meta.timestamp || meta.software) ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-              <div className="bg-white dark:bg-[#061e1c] p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/60">
+              <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
                 <span className="text-stone-500 text-[10px] uppercase font-bold block">GPS Geotag</span>
                 <span className={`font-bold ${meta.hasGps ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                   {meta.hasGps ? '⚠️ Terdeteksi (Telah Dibersihkan)' : 'Tidak Terdeteksi'}
                 </span>
               </div>
-              <div className="bg-white dark:bg-[#061e1c] p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/60">
+              <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
                 <span className="text-stone-500 text-[10px] uppercase font-bold block">Kamera</span>
                 <span className="font-bold text-stone-800 dark:text-stone-200 truncate block">
                   {meta.cameraMaker || 'Tidak Terdeteksi'}
                 </span>
               </div>
-              <div className="bg-white dark:bg-[#061e1c] p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/60">
+              <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
                 <span className="text-stone-500 text-[10px] uppercase font-bold block">Stempel Waktu</span>
                 <span className="font-bold text-stone-800 dark:text-stone-200 truncate block">
                   {meta.timestamp || 'Tidak Ada'}
                 </span>
               </div>
-              <div className="bg-white dark:bg-[#061e1c] p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/60">
+              <div className="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-amber-200 dark:border-gray-600">
                 <span className="text-stone-500 text-[10px] uppercase font-bold block">Software Editor</span>
                 <span className="font-bold text-stone-800 dark:text-stone-200 truncate block">
                   {meta.software || 'Tidak Ada'}
@@ -164,7 +164,7 @@ export function EvidenceSecurityPanel({
       </div>
 
       {/* ── REPORTER REASON/NOTE INPUT (REQUIRED IF AI OR NO EXIF) ─────────── */}
-      <div className="space-y-1.5 border-t border-stone-200 dark:border-teal-900/80 pt-3">
+      <div className="space-y-1.5 border-t border-stone-200 dark:border-gray-600 pt-3">
         <label className="text-xs font-bold text-stone-700 dark:text-stone-300 flex items-center justify-between">
           <span>
             {item.forensicStatus === 'Original'
@@ -186,10 +186,10 @@ export function EvidenceSecurityPanel({
               ? 'Misal: "Tangkapan layar bukti obrolan grup"'
               : 'Jelaskan mengapa berkas ini terindikasi tanpa EXIF/AI (minimal 5 karakter)...'
           }
-          className={`w-full bg-white dark:bg-[#061e1c] border rounded-xl p-3 text-xs text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none font-medium transition-all ${
+          className={`w-full bg-white dark:bg-gray-800 border rounded-xl p-3 text-xs text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none font-medium transition-all ${
             item.forensicStatus !== 'Original' && item.reporterNote.trim().length < 5
               ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-              : 'border-stone-300 dark:border-teal-900 focus:border-teal-500'
+              : 'border-stone-300 dark:border-gray-600 focus:border-teal-500'
           }`}
         />
         {item.forensicStatus !== 'Original' && (

@@ -6,6 +6,7 @@ import {
   type Report,
   type CaseStatus,
   type EvidenceVerificationStatus,
+  type EvidenceAnalysisResult,
   type Message,
   type AuditLog,
   MOCK_REPORTS,
@@ -207,6 +208,39 @@ export default function AdminDashboard() {
     updateReportInDatabase(reportToVerify.caseId, { evidences: newEvidences, auditLogs: logs });
   };
 
+  const handleSaveEvidenceAnalysis = (reportToUpdate: Report, evidenceId: string, analysis: EvidenceAnalysisResult) => {
+    const evidenceItem = reportToUpdate.evidences.find((e) => e.evidenceId === evidenceId);
+    if (!evidenceItem) return;
+
+    const newEvidences = reportToUpdate.evidences.map((ev) => {
+      if (ev.evidenceId === evidenceId) {
+        return {
+          ...ev,
+          aiAnalysis: analysis,
+          forensicStatus: analysis.tamperingDetected ? ('Manipulated' as const) : ('Original' as const),
+        };
+      }
+      return ev;
+    });
+
+    const auditEntry: AuditLog = {
+      id: `AL-${Date.now()}`,
+      action: `Pemindaian Multimodal AI untuk berkas "${evidenceItem.fileName}": Keaslian ${analysis.authenticityScore}% (${analysis.tamperingDetected ? 'Terindikasi Manipulasi / AI' : 'Otentik / Asli'})`,
+      actor: 'Sistem',
+      timestamp: new Date().toISOString(),
+    };
+
+    const logs = reportToUpdate.auditLogs ? [...reportToUpdate.auditLogs, auditEntry] : [auditEntry];
+    const updatedReport = { ...reportToUpdate, evidences: newEvidences, auditLogs: logs };
+
+    const updated = reports.map((r) => (r.caseId === reportToUpdate.caseId ? updatedReport : r));
+    setReports(updated);
+    if (selectedReport?.caseId === reportToUpdate.caseId) {
+      setSelectedReport(updatedReport);
+    }
+    updateReportInDatabase(reportToUpdate.caseId, { evidences: newEvidences, auditLogs: logs });
+  };
+
   const handleSendSatgasMessage = (e: React.FormEvent) => {
     e.preventDefault();
     const activeCase = selectedReport || (activeTab === 'chat' ? chatSelectedReport : null);
@@ -292,7 +326,7 @@ export default function AdminDashboard() {
   // Auth Loading View
   if (!isAuthChecked || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center gap-4 text-stone-500 dark:text-stone-400">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center gap-4 text-stone-500 dark:text-stone-300">
         <div className="w-9 h-9 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
         <p className="text-xs font-semibold tracking-wide">Memeriksa Hak Akses Admin...</p>
       </div>
@@ -304,16 +338,16 @@ export default function AdminDashboard() {
     <div className="space-y-4 animate-pulse">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-white dark:bg-[#163432] p-4 rounded-2xl border border-stone-200 dark:border-teal-900 h-24" />
+          <div key={i} className="bg-white dark:bg-gray-700 p-4 rounded-2xl border border-stone-200 dark:border-gray-600 h-24" />
         ))}
       </div>
-      <div className="bg-white dark:bg-[#163432] p-5 rounded-2xl border border-stone-200 dark:border-teal-900 h-48" />
-      <div className="bg-white dark:bg-[#163432] p-5 rounded-2xl border border-stone-200 dark:border-teal-900 h-64" />
+      <div className="bg-white dark:bg-gray-700 p-5 rounded-2xl border border-stone-200 dark:border-gray-600 h-48" />
+      <div className="bg-white dark:bg-gray-700 p-5 rounded-2xl border border-stone-200 dark:border-gray-600 h-64" />
     </div>
   );
 
   return (
-    <div className="min-h-screen max-w-full overflow-x-hidden bg-[#ececec] dark:bg-[#061f1d] text-stone-900 dark:text-stone-100 relative z-10 font-sans selection:bg-teal-500/20">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-[#ececec] dark:bg-gray-800 text-stone-900 dark:text-stone-100 relative z-10 font-sans selection:bg-teal-500/20">
       {/* 1. Navbar / Header */}
       <AdminHeader
         activeTab={activeTab}
@@ -335,6 +369,7 @@ export default function AdminDashboard() {
             onClose={() => setSelectedReport(null)}
             onUpdateStatus={(status) => handleUpdateStatus(selectedReport, status)}
             onVerifyEvidence={(evidenceId, status, note) => handleVerifyEvidence(selectedReport, evidenceId, status, note)}
+            onSaveEvidenceAnalysis={(evidenceId, analysis) => handleSaveEvidenceAnalysis(selectedReport, evidenceId, analysis)}
             internalNotesMap={internalNotesMap}
             internalNoteInput={internalNoteInput}
             setInternalNoteInput={setInternalNoteInput}
@@ -349,6 +384,14 @@ export default function AdminDashboard() {
                   reports={reports}
                   onSelectTab={(tab) => setActiveTab(tab)}
                   onSelectReport={(report) => setSelectedReport(report)}
+                  onFilterStatus={(status) => {
+                    setStatusFilter(status);
+                    setActiveTab('inbox');
+                  }}
+                  onFilterCategory={(cat) => {
+                    setCategoryFilter(cat);
+                    setActiveTab('inbox');
+                  }}
                 />
               )
             )}

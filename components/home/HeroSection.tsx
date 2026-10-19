@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, type Variants } from 'framer-motion';
 import GlowingHeadline from '@/components/hero/GlowingHeadline';
 import GlassmorphismCTA from '@/components/hero/GlassmorphismCTA';
-import AntiGravityCard from '@/components/hero/AntiGravityCard';
+import AITriageSimulator from '@/components/hero/AITriageSimulator';
 import TiltCard from '@/components/hero/TiltCard';
 import Hero3DBackground from '@/components/home/Hero3DBackground';
 
@@ -35,11 +35,11 @@ export default function HeroSection() {
           <GlassmorphismCTA />
         </div>
 
-        {/* Right Column: Floating Interactive Encryption Demo Card */}
+        {/* Right Column: Live Interactive AI Smart Triage Simulator Card */}
         <div className="lg:col-span-5 relative flex justify-center lg:justify-end">
           <div className="relative z-10 w-full">
-            <TiltCard>
-              <AntiGravityCard />
+            <TiltCard maxTilt={5}>
+              <AITriageSimulator />
             </TiltCard>
           </div>
         </div>

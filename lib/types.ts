@@ -1,4 +1,5 @@
 // Shared types for the RuangAman reporting system
+import type { ExtractedMetadata, FileValidationResult } from '@/lib/crypto';
 
 // ─── AI Triage ─────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,8 @@ export type Evidence = {
   dataUrl?: string;
   /** Flag jika file diambil real-time dari kamera */
   isLiveCapture?: boolean;
+  /** Metode perolehan berkas (Hasil Unduhan / Tangkapan Layar / Perekaman Langsung) */
+  acquisitionMethod?: string;
   /** Status AI Forensic */
   forensicStatus?: 'Original' | 'Needs Review' | 'Manipulated';
   /** Detail forensic (contoh: log EXIF, GPS, SHA256 integrity, dll) */
@@ -77,11 +80,17 @@ export type Evidence = {
   verificationNote?: string;
   /** Hasil analisis multimodal AI forensik (Gemini Vision / Groq) */
   aiAnalysis?: EvidenceAnalysisResult;
+  /** Metadata sensitif asli sebelum disanitasi */
+  extractedMeta?: ExtractedMetadata;
+  /** Hasil validasi biner magic bytes */
+  validationResult?: FileValidationResult;
 };
 
 /** Hasil Analisis Berkas Multimodal AI Forensik */
 export interface EvidenceAnalysisResult {
   mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO';
+  /** Deskripsi ringkas isi visual / audio berkas bukti */
+  visualDescription?: string;
   extractedText: string;
   keyFindings: string[];
   emotionalContext: string;

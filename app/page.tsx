@@ -3,8 +3,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import HeroSection from '@/components/home/HeroSection';
-import ViolationsCatalogSection from '@/components/home/ViolationsCatalogSection';
-import TrustAndSecuritySection from '@/components/home/TrustAndSecuritySection';
+import HomeQuickSafetySection from '@/components/home/HomeQuickSafetySection';
+import HomeCategoryDistributionSection from '@/components/home/HomeCategoryDistributionSection';
 import PipelineRoadmapSection from '@/components/home/PipelineRoadmapSection';
 import EncryptionSimulator from '@/components/home/EncryptionSimulator';
 import MentalHealthModule from '@/components/home/MentalHealthModule';
@@ -28,13 +28,17 @@ export default function LandingPage() {
           <HeroSection />
         </motion.div>
 
+        {/* 1. Panduan Tindakan Cepat Pengamanan Diri (dari Layanan) */}
         <motion.div {...sectionAnimation}>
-          <ViolationsCatalogSection />
+          <HomeQuickSafetySection />
         </motion.div>
 
-        {/* <motion.div {...sectionAnimation}>
-          <TrustAndSecuritySection />
-        </motion.div> */}
+        {/* 2. Distribusi Kategori Laporan Publik Data Riil (dari Transparansi) */}
+        <motion.div {...sectionAnimation}>
+          <HomeCategoryDistributionSection />
+        </motion.div>
+
+        {/* 3. Peta Alur Kerja & Proteksi RuangAman Platform */}
 
         <motion.div {...sectionAnimation}>
           <PipelineRoadmapSection />

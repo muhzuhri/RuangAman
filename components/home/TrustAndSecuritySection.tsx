@@ -42,7 +42,7 @@ export default function TrustAndSecuritySection() {
         variants={containerVariants}
         className="text-center space-y-4 max-w-3xl mx-auto"
       >
-        <motion.div variants={childVariants} className="inline-flex items-center gap-2 bg-white dark:bg-[#163432] border border-stone-200 dark:border-teal-900 px-4 py-1.5 rounded-full">
+        <motion.div variants={childVariants} className="inline-flex items-center gap-2 bg-white dark:bg-gray-700 border border-stone-200 dark:border-gray-600 px-4 py-1.5 rounded-full">
           <ShieldCheck className="w-4 h-4 text-teal-800 dark:text-teal-400" />
           <span className="text-xs font-semibold text-stone-700 dark:text-stone-300 tracking-wider uppercase">Jaminan keamanan & integritas</span>
         </motion.div>
@@ -62,11 +62,11 @@ export default function TrustAndSecuritySection() {
         whileInView={{ opacity: 1, scale: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="relative overflow-hidden bg-[#f4f4f4] dark:bg-[#163432] border border-stone-300 dark:border-teal-900 rounded-2xl p-8 md:p-12 shadow-sm text-stone-800 dark:text-stone-100"
+        className="relative overflow-hidden bg-[#f4f4f4] dark:bg-gray-700 border border-stone-300 dark:border-gray-600 rounded-2xl p-8 md:p-12 shadow-sm text-stone-800 dark:text-stone-100"
       >
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2 bg-stone-100 dark:bg-[#0a2220] border border-stone-200 dark:border-teal-900 rounded-lg px-3 py-1 text-xs font-mono text-stone-700 dark:text-stone-300">
+            <div className="inline-flex items-center gap-2 bg-stone-100 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-lg px-3 py-1 text-xs font-mono text-stone-700 dark:text-stone-300">
               <Lock className="w-3.5 h-3.5 text-teal-800" /> Proteksi ganda: anonimitas korban & akurasi bukti
             </div>
             <h3 className="text-2xl md:text-3xl font-semibold tracking-tight text-stone-900 dark:text-white leading-tight">
@@ -91,28 +91,28 @@ export default function TrustAndSecuritySection() {
             </ul>
           </div>
 
-          <div className="lg:col-span-5 bg-stone-50 dark:bg-[#0a2220] border border-stone-200 dark:border-teal-900 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-200 dark:border-teal-900 pb-3">
+          <div className="lg:col-span-5 bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-600 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-200 dark:border-gray-600 pb-3">
               <span className="text-xs font-semibold font-mono text-teal-800 dark:text-teal-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Fingerprint className="w-4 h-4" /> Proof-of-authenticity
               </span>
-              <span className="text-[10px] bg-white dark:bg-[#163432] text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-600 px-2 py-0.5 rounded font-mono">
+              <span className="text-[10px] bg-white dark:bg-gray-700 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-gray-600 px-2 py-0.5 rounded font-mono">
                 Cryptographic
               </span>
             </div>
 
             <div className="space-y-3 font-mono text-xs">
-              <div className="bg-white dark:bg-[#163432] p-3 rounded-xl border border-stone-200 dark:border-teal-900 space-y-1">
+              <div className="bg-white dark:bg-gray-700 p-3 rounded-xl border border-stone-200 dark:border-gray-600 space-y-1">
                 <p className="text-stone-500 text-[10px]">VERIFIKASI INTEGRITAS FILE</p>
                 <p className="text-stone-800 dark:text-stone-200 font-semibold break-all">SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-white dark:bg-[#163432] p-2.5 rounded-lg border border-stone-200 dark:border-teal-900">
+                <div className="bg-white dark:bg-gray-700 p-2.5 rounded-lg border border-stone-200 dark:border-gray-600">
                   <p className="text-stone-500 text-[10px]">EXIF PRIVACY</p>
                   <p className="text-teal-800 dark:text-teal-400 font-semibold">Location stripped</p>
                 </div>
-                <div className="bg-white dark:bg-[#163432] p-2.5 rounded-lg border border-stone-200 dark:border-teal-900">
+                <div className="bg-white dark:bg-gray-700 p-2.5 rounded-lg border border-stone-200 dark:border-gray-600">
                   <p className="text-stone-500 text-[10px]">FORENSIC SCORE</p>
                   <p className="text-teal-800 dark:text-teal-400 font-semibold">Native capture</p>
                 </div>
@@ -128,12 +128,12 @@ export default function TrustAndSecuritySection() {
 
       {/* INTERACTIVE NAVIGATION TABS */}
       <div className="flex justify-center">
-        <div className="bg-stone-100 dark:bg-[#163432] p-1.5 rounded-2xl border border-stone-200 dark:border-teal-900 inline-flex gap-1 flex-wrap justify-center">
+        <div className="bg-stone-100 dark:bg-gray-700 p-1.5 rounded-2xl border border-stone-200 dark:border-gray-600 inline-flex gap-1 flex-wrap justify-center">
           <button
             onClick={() => setActiveTab('flow')}
             className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'flow'
-                ? 'bg-white dark:bg-[#0a2220] text-teal-800 dark:text-teal-300 shadow-sm'
+                ? 'bg-white dark:bg-gray-800 text-teal-800 dark:text-teal-300 shadow-sm'
                 : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
@@ -143,7 +143,7 @@ export default function TrustAndSecuritySection() {
             onClick={() => setActiveTab('security')}
             className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'security'
-                ? 'bg-white dark:bg-[#0a2220] text-teal-800 dark:text-teal-300 shadow-sm'
+                ? 'bg-white dark:bg-gray-800 text-teal-800 dark:text-teal-300 shadow-sm'
                 : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
@@ -153,7 +153,7 @@ export default function TrustAndSecuritySection() {
             onClick={() => setActiveTab('antiTamper')}
             className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'antiTamper'
-                ? 'bg-white dark:bg-[#0a2220] text-teal-800 dark:text-teal-300 shadow-sm'
+                ? 'bg-white dark:bg-gray-800 text-teal-800 dark:text-teal-300 shadow-sm'
                 : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
@@ -252,9 +252,9 @@ export default function TrustAndSecuritySection() {
 function StepCard({ num, title, desc, icon }: { num: string; title: string; desc: string; icon: React.ReactNode; }) {
   return (
     <TiltCard maxTilt={6}>
-      <div className="bg-[#f4f4f4] dark:bg-[#163432] border border-stone-300 dark:border-teal-900 rounded-2xl p-6 space-y-4 shadow-sm h-full">
+      <div className="bg-[#f4f4f4] dark:bg-gray-700 border border-stone-300 dark:border-gray-600 rounded-2xl p-6 space-y-4 shadow-sm h-full">
         <div className="flex items-center justify-between">
-          <div className="w-12 h-12 bg-white dark:bg-[#0a2220] rounded-xl flex items-center justify-center border border-stone-200 dark:border-teal-900">
+          <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center border border-stone-200 dark:border-gray-600">
             {icon}
           </div>
           <span className="font-mono text-2xl font-bold text-stone-300 dark:text-stone-500">{num}</span>
@@ -271,8 +271,8 @@ function StepCard({ num, title, desc, icon }: { num: string; title: string; desc
 function FeatureCard({ title, desc, icon }: { title: string; desc: string; icon: React.ReactNode; }) {
   return (
     <TiltCard maxTilt={6}>
-      <div className="bg-[#f4f4f4] dark:bg-[#163432] border border-stone-300 dark:border-teal-900 rounded-2xl p-7 space-y-4 shadow-sm h-full">
-        <div className="w-12 h-12 bg-white dark:bg-[#0a2220] rounded-xl flex items-center justify-center border border-stone-200 dark:border-teal-900">
+      <div className="bg-[#f4f4f4] dark:bg-gray-700 border border-stone-300 dark:border-gray-600 rounded-2xl p-7 space-y-4 shadow-sm h-full">
+        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center border border-stone-200 dark:border-gray-600">
           {icon}
         </div>
         <div className="space-y-2">

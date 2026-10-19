@@ -13,37 +13,37 @@ export default function Footer() {
     return null;
   }
   return (
-    <footer className="relative z-10 border-t border-stone-800 dark:border-teal-800 bg-teal-950 dark:bg-mauve-900 pt-16 pb-10 w-full text-stone-300">
+    <footer className="relative z-10 border-t border-gray-700 bg-gray-800 pt-16 pb-10 w-full text-gray-300">
       <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-16 mb-12">
         <div className="col-span-1 md:col-span-2 space-y-5">
-          <div className="flex items-center gap-2">
-            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-700 p-1 border border-gray-600">
               <Image
-                src="/images/logii.png"
+                src="/images/loogooo.png"
                 alt="RuangAman Logo"
-                width={36}
-                height={36}
-                className="w-full h-full object-cover"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
               />
             </div>
-            <span className="text-xl font-bold tracking-tight text-white dark:text-stone-50">RuangAman</span>
+            <span className="text-xl font-bold tracking-tight text-white">RuangAman</span>
           </div>
-          <p className="text-stone-400 dark:text-stone-400 text-sm max-w-md leading-relaxed">
+          <p className="text-gray-400 text-sm max-w-md leading-relaxed">
             Membangun ruang aman digital untuk mahasiswa. Kami berfokus melindungi mereka yang memegang keberanian untuk berbicara melawan ketidakadilan institusional.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <div className="bg-stone-800 dark:bg-[#163432] border border-stone-700 dark:border-stone-700 p-3.5 rounded-xl flex items-center gap-3">
-              <Activity className="w-5 h-5 text-teal-400 dark:text-teal-400 shrink-0" />
+            <div className="bg-gray-700 border border-gray-600 p-3.5 rounded-xl flex items-center gap-3">
+              <Activity className="w-5 h-5 text-teal-400 shrink-0" />
               <div>
-                <div className="text-[10px] uppercase font-bold text-teal-400 dark:text-teal-400 tracking-wider">Mendukung SDG 3</div>
-                <div className="text-xs font-semibold text-stone-200 dark:text-stone-300 mt-0.5">Kesehatan Mental & Kesejahteraan</div>
+                <div className="text-[10px] uppercase font-bold text-teal-400 tracking-wider">Mendukung SDG 3</div>
+                <div className="text-xs font-semibold text-gray-200 mt-0.5">Kesehatan Mental & Kesejahteraan</div>
               </div>
             </div>
-            <div className="bg-stone-800 dark:bg-[#163432] border border-stone-700 dark:border-stone-700 p-3.5 rounded-xl flex items-center gap-3">
-              <FileText className="w-5 h-5 text-stone-400 dark:text-stone-400 shrink-0" />
+            <div className="bg-gray-700 border border-gray-600 p-3.5 rounded-xl flex items-center gap-3">
+              <FileText className="w-5 h-5 text-gray-400 shrink-0" />
               <div>
-                <div className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">Mendukung SDG 16</div>
-                <div className="text-xs font-semibold text-stone-200 dark:text-stone-300 mt-0.5">Kelembagaan yang Tangguh</div>
+                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Mendukung SDG 16</div>
+                <div className="text-xs font-semibold text-gray-200 mt-0.5">Kelembagaan yang Tangguh</div>
               </div>
             </div>
           </div>
@@ -55,16 +55,17 @@ export default function Footer() {
             <li><Link href="/" className="hover:text-teal-400 transition-colors font-medium">Beranda Sistem</Link></li>
             <li><Link href="/report" className="hover:text-teal-400 transition-colors font-medium">Buat Laporan</Link></li>
             <li><Link href="/track" className="hover:text-teal-400 transition-colors font-medium">Tracker Anonim</Link></li>
-            <li><Link href="/support" className="hover:text-teal-400 transition-colors font-medium">Bantuan & PFA</Link></li>
-            <li><Link href="/education" className="hover:text-teal-400 transition-colors font-medium">Edukasi</Link></li>
+            <li><Link href="/support" className="hover:text-teal-400 transition-colors font-medium">Layanan & Informasi</Link></li>
+            <li><Link href="/transparency" className="hover:text-teal-400 transition-colors font-medium">Transparansi & Peta Risiko</Link></li>
           </ul>
         </div>
 
         <div className="space-y-5">
           <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Legal & Privasi</h4>
           <ul className="space-y-3 text-sm text-stone-400 dark:text-stone-400">
-            <li><Link href="/education" className="hover:text-teal-400 transition-colors font-medium">Kebijakan Privasi & Hak Pelapor</Link></li>
+            <li><Link href="/support" className="hover:text-teal-400 transition-colors font-medium">Kebijakan Privasi & Hak Pelapor</Link></li>
             <li><Link href="/support" className="hover:text-teal-400 transition-colors font-medium">Bantuan & Layanan Satgas</Link></li>
+            <li><Link href="/transparency" className="hover:text-teal-400 transition-colors font-medium">Akuntabilitas Publik Satgas</Link></li>
             <li className="pt-2 border-t border-stone-800 dark:border-teal-900/60">
               <Link href="/admin/login" className="hover:text-teal-400 transition-colors font-medium flex items-center gap-1.5 text-stone-400">
                 <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />

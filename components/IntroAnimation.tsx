@@ -51,7 +51,7 @@ export default function IntroAnimation() {
           key="intro-overlay"
           className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none"
           style={{
-            backgroundColor: '#061f1d',
+            backgroundColor: '#1f2937',
             willChange: 'opacity',
           }}
           initial={{ opacity: 1 }}
@@ -66,7 +66,7 @@ export default function IntroAnimation() {
             transition={{ duration: 0.6 }}
             style={{
               background:
-                'radial-gradient(circle at 50% 50%, rgba(20,184,166,0.15) 0%, transparent 65%)',
+                'radial-gradient(circle at 50% 50%, rgba(75,85,99,0.35) 0%, transparent 65%)',
             }}
           />
 
@@ -74,14 +74,14 @@ export default function IntroAnimation() {
           {phase === 'center' && (
             <>
               <motion.div
-                className="absolute rounded-full border border-teal-500/20"
+                className="absolute rounded-full border border-gray-500/30"
                 initial={{ scale: 0.6, opacity: 0.6 }}
                 animate={{ scale: 2.2, opacity: 0 }}
                 transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
                 style={{ width: 176, height: 176, willChange: 'transform, opacity' }}
               />
               <motion.div
-                className="absolute rounded-full border border-teal-400/15"
+                className="absolute rounded-full border border-gray-600/40"
                 initial={{ scale: 0.6, opacity: 0.4 }}
                 animate={{ scale: 2.6, opacity: 0 }}
                 transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut', delay: 0.3 }}
@@ -118,14 +118,14 @@ export default function IntroAnimation() {
             <div className="relative">
               {/* Lighter glow shadow for 60fps mobile rendering */}
               <div
-                className="relative w-44 h-44 rounded-2xl overflow-hidden border-2 border-teal-700/60 shadow-lg"
-                style={{ boxShadow: '0 8px 32px rgba(20,184,166,0.3)' }}
+                className="relative w-44 h-44 rounded-3xl overflow-hidden border-2 border-gray-600 bg-gray-700/95 shadow-2xl flex items-center justify-center p-3"
+                style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.5)' }}
               >
                 <Image
-                  src="/images/logii.png"
+                  src="/images/loogooo.png"
                   alt="RuangAman Logo"
                   fill
-                  className="object-cover"
+                  className="object-contain p-2"
                   priority
                 />
               </div>
@@ -140,7 +140,7 @@ export default function IntroAnimation() {
             >
               <span
                 className="text-4xl font-extrabold tracking-tight text-white"
-                style={{ textShadow: '0 2px 12px rgba(20,184,166,0.4)' }}
+                style={{ textShadow: '0 2px 14px rgba(0,0,0,0.6)' }}
               >
                 RuangAman
               </span>

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Command } from 'cmdk';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
-import { Sun, Moon, Search, Laptop, ShieldCheck, Home, Map, Command as CmdIcon, HeartHandshake, BookOpen } from 'lucide-react';
+import { Sun, Moon, Search, Laptop, ShieldCheck, Home, Map, Command as CmdIcon, HeartHandshake, BookOpen, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function CommandPalette() {
@@ -46,7 +46,7 @@ export function CommandPalette() {
               exit={{ opacity: 0, scale: 0.96, y: -10 }}
               transition={{ duration: 0.15 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-white dark:bg-[#163432] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-lg bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-2xl shadow-2xl overflow-hidden"
             >
               <Command className="w-full h-full flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
                 <div className="flex items-center px-4 py-3.5 border-b border-slate-100 dark:border-slate-800" cmdk-input-wrapper="">
@@ -90,13 +90,13 @@ export function CommandPalette() {
                       onSelect={() => handleSelect(() => router.push('/support'))}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-slate-800 hover:text-teal-900 dark:hover:text-teal-300 my-1 aria-selected:bg-teal-50 dark:aria-selected:bg-teal-900 aria-selected:text-teal-900 dark:aria-selected:text-teal-300 transition-colors"
                     >
-                      <HeartHandshake className="w-4 h-4 text-rose-500" /> Pusat Bantuan & PFA
+                      <HeartHandshake className="w-4 h-4 text-rose-500" /> Layanan & Informasi
                     </Command.Item>
                     <Command.Item
-                      onSelect={() => handleSelect(() => router.push('/education'))}
+                      onSelect={() => handleSelect(() => router.push('/transparency'))}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-slate-800 hover:text-teal-900 dark:hover:text-teal-300 my-1 aria-selected:bg-teal-50 dark:aria-selected:bg-teal-900 aria-selected:text-teal-900 dark:aria-selected:text-teal-300 transition-colors"
                     >
-                      <BookOpen className="w-4 h-4 text-indigo-500" /> Edukasi & Hak Korban
+                      <Compass className="w-4 h-4 text-cyan-500" /> Transparansi & Peta Kerawanan
                     </Command.Item>
                     <Command.Item
                       onSelect={() => handleSelect(() => router.push('/admin/login'))}
@@ -134,7 +134,7 @@ export function CommandPalette() {
                   </Command.Group>
                 </Command.List>
 
-                <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="border-t border-slate-100 dark:border-gray-600 px-4 py-3 flex items-center justify-between text-xs text-slate-500 dark:text-gray-300 bg-slate-50/50 dark:bg-gray-800/80">
                   <span className="flex items-center gap-1.5 font-medium"><CmdIcon className="w-3.5 h-3.5"/> Pusat Perintah & Navigasi</span>
                   <span className="font-semibold text-teal-600 dark:text-teal-400">RuangAman</span>
                 </div>

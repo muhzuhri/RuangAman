@@ -168,7 +168,7 @@ export default function PipelineRoadmapSection() {
             isRight ? 'md:ml-auto' : 'md:mr-auto'
           }`}
         >
-          <div className="group relative bg-[#f4f4f4]/95 dark:bg-[#163432]/95 backdrop-blur-xl border border-stone-300 dark:border-teal-900/80 hover:border-teal-500/60 dark:hover:border-teal-500/60 rounded-3xl p-6 sm:p-7 shadow-md hover:shadow-xl transition-all duration-300">
+          <div className="group relative bg-[#f4f4f4]/95 dark:bg-gray-700/95 backdrop-blur-xl border border-stone-300 dark:border-gray-600 hover:border-teal-500/60 dark:hover:border-teal-500/60 rounded-3xl p-6 sm:p-7 shadow-md hover:shadow-xl transition-all duration-300">
             {/* Top Accent Gradient Bar */}
             <div className={`h-1.5 w-16 rounded-full bg-gradient-to-r ${item.color} mb-5`} />
 

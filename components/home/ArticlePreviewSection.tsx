@@ -65,7 +65,7 @@ export default function ArticlePreviewSection() {
         </div>
 
         <Link
-          href="/education"
+          href="/support"
           className="inline-flex items-center gap-2 text-xs font-bold text-teal-600 dark:text-teal-400 hover:text-teal-500 dark:hover:text-teal-300 transition-colors group cursor-pointer shrink-0"
         >
           <span>Lihat Semua Artikel</span>
@@ -124,7 +124,7 @@ export default function ArticlePreviewSection() {
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
                 <Link
-                  href="/education"
+                  href="/support"
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform cursor-pointer"
                 >
                   <span>Baca Artikel Selengkapnya</span>
@@ -139,11 +139,11 @@ export default function ArticlePreviewSection() {
       {/* BOTTOM BUTTON: LIHAT SEMUA ARTIKEL */}
       <div className="pt-4 flex justify-center">
         <Link
-          href="/education"
+          href="/support"
           className="inline-flex items-center gap-3 bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-lg shadow-teal-600/20 hover:shadow-teal-600/40 transition-all hover:scale-[1.02] cursor-pointer"
         >
           <BookOpen className="w-4 h-4 text-teal-200" />
-          <span>Lihat Semua Artikel Edukasi</span>
+          <span>Lihat Semua Artikel & Edukasi</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
