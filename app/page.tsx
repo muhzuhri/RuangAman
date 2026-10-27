@@ -7,7 +7,7 @@ import HomeQuickSafetySection from '@/components/home/HomeQuickSafetySection';
 import HomeCategoryDistributionSection from '@/components/home/HomeCategoryDistributionSection';
 import PipelineRoadmapSection from '@/components/home/PipelineRoadmapSection';
 import EncryptionSimulator from '@/components/home/EncryptionSimulator';
-import MentalHealthModule from '@/components/home/MentalHealthModule';
+import HomeChatbotSection from '@/components/home/HomeChatbotSection';
 import Home3DCubesBackground from '@/components/home/Home3DCubesBackground';
 
 const sectionAnimation = {
@@ -39,7 +39,6 @@ export default function LandingPage() {
         </motion.div>
 
         {/* 3. Peta Alur Kerja & Proteksi RuangAman Platform */}
-
         <motion.div {...sectionAnimation}>
           <PipelineRoadmapSection />
         </motion.div>
@@ -48,8 +47,9 @@ export default function LandingPage() {
           <EncryptionSimulator />
         </motion.div>
 
+        {/* 4. Konsultasi & Ruang Curhat Aman Bersama AI Chatbot Ara */}
         <motion.div {...sectionAnimation}>
-          <MentalHealthModule />
+          <HomeChatbotSection />
         </motion.div>
       </main>
     </div>

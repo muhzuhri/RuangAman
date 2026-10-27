@@ -56,6 +56,9 @@ export default function AdminDashboard() {
 
   // ── Auth & Data Initializer ───────────────────────────────────────────────
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
     setMounted(true);
     try {
       if (!checkIsAdminAuthenticated()) {
@@ -136,7 +139,12 @@ export default function AdminDashboard() {
     setSelectedReport(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.warn('Logout API error:', e);
+    }
     clearAdminAuthSession();
     setIsAuthenticated(false);
     router.replace('/admin/login?logout=true');

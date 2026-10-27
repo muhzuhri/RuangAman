@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx tests/runAllTests.ts",
     "check-telegram": "node scripts/find-telegram-chat.mjs"
   },
   "dependencies": {
@@ -34,6 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

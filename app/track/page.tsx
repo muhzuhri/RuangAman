@@ -74,6 +74,16 @@ export default function TrackPage() {
     setFoundReport(updatedReport);
     setChatInput('');
 
+    try {
+      await fetch(`/api/track/${encodeURIComponent(foundReport.anonymousToken)}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: chatInput }),
+      });
+    } catch (e) {
+      console.warn('Track chat API warning:', e);
+    }
+
     await updateReportInDatabase(foundReport.caseId, { messages: msgs, auditLogs: logs });
     setIsSending(false);
   };

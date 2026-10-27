@@ -25,6 +25,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ChatMessage } from '@/app/api/pfa-chat/route';
+import { FormattedMessageText } from '@/components/pfa/PfaMarkdownFormatter';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -77,21 +78,27 @@ export default function PFAChat() {
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const lipSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ─── Auto-scroll text chat ──────────────────────────────────────────────────
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // ─── Auto-scroll text chat (Container-scoped, never scrolls window) ──────────
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior,
+      });
+    }
   }, []);
 
   useEffect(() => {
-    if (mode === 'text') {
+    if (mode === 'text' && messages.length > 1) {
       scrollToBottom();
     }
-  }, [messages, isLoading, mode, scrollToBottom]);
+  }, [messages.length, isLoading, mode, scrollToBottom]);
 
   // ─── Initialize Web Speech API (STT & TTS) ──────────────────────────────────
   useEffect(() => {
@@ -452,7 +459,7 @@ export default function PFAChat() {
             className="flex flex-col flex-1"
           >
             {/* Messages Scroll Area */}
-            <div className="h-[430px] overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar">
+            <div ref={messagesContainerRef} className="h-[430px] overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar">
               {messages.map((msg) => {
                 const isUser = msg.role === 'user';
                 return (
@@ -475,13 +482,17 @@ export default function PFAChat() {
 
                     <div className={`max-w-[85%] sm:max-w-[78%] space-y-1.5 flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
                       <div
-                        className={`px-4.5 py-3.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                        className={`px-4.5 py-3.5 rounded-2xl text-sm leading-relaxed ${
                           isUser
-                            ? 'bg-teal-700 text-white rounded-tr-xs'
+                            ? 'bg-teal-700 text-white rounded-tr-xs whitespace-pre-wrap'
                             : 'bg-white dark:bg-[#1a3e3a] text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-teal-900/60 rounded-tl-xs shadow-xs'
                         }`}
                       >
-                        {msg.text}
+                        {isUser ? (
+                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                        ) : (
+                          <FormattedMessageText text={msg.text} />
+                        )}
 
                         {/* CTA Shortcut if message mentions /report */}
                         {!isUser && msg.text.includes('/report') && (
@@ -497,8 +508,13 @@ export default function PFAChat() {
                         )}
                       </div>
 
-                      <span className="text-[10px] text-stone-400 px-1 font-mono">
-                        {msg.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      <span
+                        className="text-[10px] text-stone-400 px-1 font-mono"
+                        suppressHydrationWarning
+                      >
+                        {msg.id === 'init'
+                          ? 'Baru saja'
+                          : msg.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </motion.div>

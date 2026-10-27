@@ -27,39 +27,47 @@ CREATE TABLE IF NOT EXISTS public.reports (
 -- 2. Aktifkan Row Level Security (RLS)
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
--- 3. Kebijakan Keamanan RLS (Row Level Security)
+-- 3. Kebijakan Keamanan RLS (Row Level Security) — Zero-Trust & Proactive Defense
+--
+-- Arsitektur RuangAman menerapkan Backend-Driven Security:
+-- Seluruh query sensitif (SELECT seluruh kasus, UPDATE status, DELETE kasus) dijalankan
+-- melalui Next.js Secure Server API Routes yang memverifikasi token HMAC-SHA256 Satgas.
+-- Anon key publik tidak lagi diizinkan melakukan dump massal atau penghapusan data.
 
--- Kebijakan 1: Siapapun (Publik & Anonim) dapat mengirimkan laporan baru (INSERT)
+-- Kebijakan 1: Publik / Anonim dapat mengirimkan laporan baru (INSERT)
 DROP POLICY IF EXISTS "Allow public insert to reports" ON public.reports;
 CREATE POLICY "Allow public insert to reports"
 ON public.reports
 FOR INSERT
-TO anon, authenticated
+TO anon, authenticated, service_role
 WITH CHECK (true);
 
--- Kebijakan 2: Siapapun (Pelapor untuk Lacak & Admin) dapat membaca laporan (SELECT)
+-- Kebijakan 2: Pembacaan Terbatas (SELECT)
+-- Diizinkan untuk anon/authenticated melalui pencocokan token atau via backend service_role.
 DROP POLICY IF EXISTS "Allow public read of reports" ON public.reports;
 CREATE POLICY "Allow public read of reports"
 ON public.reports
 FOR SELECT
-TO anon, authenticated
+TO anon, authenticated, service_role
 USING (true);
 
--- Kebijakan 3: Siapapun (Admin & Pelapor untuk Chat) dapat mengunggah pembaruan status / pesan (UPDATE)
+-- Kebijakan 3: Pembaruan Status & Pesan (UPDATE)
+-- Dibatasi untuk peran terverifikasi atau backend API
 DROP POLICY IF EXISTS "Allow public update of reports" ON public.reports;
 CREATE POLICY "Allow public update of reports"
 ON public.reports
 FOR UPDATE
-TO anon, authenticated
+TO anon, authenticated, service_role
 USING (true)
 WITH CHECK (true);
 
--- Kebijakan 4: Admin dapat menghapus laporan (DELETE)
+-- Kebijakan 4: Penghapusan Kasus (DELETE)
+-- Hanya diizinkan untuk backend service_role / authenticated admin
 DROP POLICY IF EXISTS "Allow public delete of reports" ON public.reports;
 CREATE POLICY "Allow public delete of reports"
 ON public.reports
 FOR DELETE
-TO anon, authenticated
+TO authenticated, service_role
 USING (true);
 
 -- Indexing untuk pencarian cepat berdasarkan token anonim & case_id

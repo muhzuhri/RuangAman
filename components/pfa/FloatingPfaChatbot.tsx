@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import type { ChatMessage } from '@/app/api/pfa-chat/route';
 import AnimatedAraSvgAvatar from './AnimatedAraSvgAvatar';
+import { FormattedMessageText } from './PfaMarkdownFormatter';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,150 +57,6 @@ const INITIAL_MESSAGE: UIMessage = {
   text: 'Halo, saya Ara 💚 — asisten Psychological First Aid (PFA) dari RuangAman.\n\nApapun yang sedang Anda rasakan saat ini, Anda tidak sendirian. Ruang ini aman, empatik, dan 100% anonim. Ada yang ingin Anda ceritakan atau butuh bantuan saat ini?',
   timestamp: new Date(),
 };
-
-// ─── Markdown / Message Formatter Helpers ───────────────────────────────────────
-
-type MessageBlock =
-  | { type: 'paragraph'; text: string }
-  | { type: 'list'; items: string[] };
-
-function parseMessageBlocks(raw: string): MessageBlock[] {
-  const lines = raw.split('\n');
-  const blocks: MessageBlock[] = [];
-  let currentList: string[] | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-
-    if (!trimmed) {
-      if (currentList && currentList.length > 0) {
-        blocks.push({ type: 'list', items: currentList });
-        currentList = null;
-      }
-      continue;
-    }
-
-    const bulletMatch = trimmed.match(/^([\*\-•]|\d+\.)\s+(.+)$/);
-    if (bulletMatch) {
-      if (!currentList) currentList = [];
-      currentList.push(bulletMatch[2]);
-    } else {
-      if (currentList && currentList.length > 0) {
-        blocks.push({ type: 'list', items: currentList });
-        currentList = null;
-      }
-      blocks.push({ type: 'paragraph', text: trimmed });
-    }
-  }
-
-  if (currentList && currentList.length > 0) {
-    blocks.push({ type: 'list', items: currentList });
-  }
-
-  return blocks;
-}
-
-function renderSubInline(str: string): React.ReactNode[] {
-  const subRegex = /(`[^`]+`|\*[^*]+\*)/g;
-  const parts: React.ReactNode[] = [];
-  let last = 0;
-  let m: RegExpExecArray | null;
-
-  while ((m = subRegex.exec(str)) !== null) {
-    if (m.index > last) {
-      parts.push(str.slice(last, m.index));
-    }
-    const token = m[0];
-    if (token.startsWith('`') && token.endsWith('`')) {
-      parts.push(
-        <code key={m.index} className="px-1 py-0.5 rounded bg-black/10 dark:bg-white/10 font-mono text-[11px]">
-          {token.slice(1, -1)}
-        </code>
-      );
-    } else if (token.startsWith('*') && token.endsWith('*')) {
-      parts.push(<em key={m.index}>{token.slice(1, -1)}</em>);
-    }
-    last = m.index + token.length;
-  }
-
-  if (last < str.length) {
-    parts.push(str.slice(last));
-  }
-
-  return parts;
-}
-
-function renderInlineMarkdown(text: string): React.ReactNode {
-  const regex = /(\*\*[^*]+\*\*|\[([^\]]+)\]\(([^)]+)\))/g;
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(...renderSubInline(text.slice(lastIndex, match.index)));
-    }
-
-    const full = match[0];
-    if (full.startsWith('**') && full.endsWith('**')) {
-      parts.push(
-        <strong key={match.index} className="font-semibold text-stone-900 dark:text-white">
-          {full.slice(2, -2)}
-        </strong>
-      );
-    } else if (full.startsWith('[')) {
-      const label = match[2];
-      const href = match[3];
-      parts.push(
-        <Link
-          key={match.index}
-          href={href}
-          className="text-teal-700 dark:text-teal-300 font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity"
-        >
-          {label}
-        </Link>
-      );
-    }
-
-    lastIndex = match.index + full.length;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(...renderSubInline(text.slice(lastIndex)));
-  }
-
-  return parts;
-}
-
-function renderBlock(block: MessageBlock, idx: number): React.ReactNode {
-  if (block.type === 'paragraph') {
-    return (
-      <p key={idx} className="leading-relaxed">
-        {renderInlineMarkdown(block.text)}
-      </p>
-    );
-  }
-
-  return (
-    <ul key={idx} className="space-y-1.5 my-1 pl-1 list-none">
-      {block.items.map((item, itemIdx) => (
-        <li key={itemIdx} className="flex items-start gap-2 leading-relaxed">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0 mt-2" />
-          <span className="flex-1">{renderInlineMarkdown(item)}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function FormattedMessageText({ text }: { text: string }) {
-  const blocks = parseMessageBlocks(text);
-  return (
-    <div className="space-y-2">
-      {blocks.map((b, i) => renderBlock(b, i))}
-    </div>
-  );
-}
 
 // ─── Message Bubble ────────────────────────────────────────────────────────────
 
@@ -251,11 +108,16 @@ function MessageBubble({ msg }: { msg: UIMessage }) {
           )}
         </div>
 
-        <span className="text-[10px] text-stone-400 dark:text-stone-500 px-1 font-mono">
-          {msg.timestamp.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+        <span
+          className="text-[10px] text-stone-400 dark:text-stone-500 px-1 font-mono"
+          suppressHydrationWarning
+        >
+          {msg.id === 'init'
+            ? 'Baru saja'
+            : msg.timestamp.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
         </span>
       </div>
     </motion.div>
@@ -292,6 +154,13 @@ export default function FloatingPfaChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
 
+  // Close floating chatbot when navigating to admin
+  useEffect(() => {
+    if (pathname?.startsWith('/admin')) {
+      setIsOpen(false);
+    }
+  }, [pathname]);
+
   // Dual Mode: 'text' (default) vs 'avatar'
   const [mode, setMode] = useState<'text' | 'avatar'>('text');
 
@@ -318,6 +187,7 @@ export default function FloatingPfaChatbot() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   // Sync refs to avoid stale closures in Web Speech API & callbacks
   const modeRef = useRef(mode);
@@ -334,18 +204,43 @@ export default function FloatingPfaChatbot() {
 
   const sendMessageRef = useRef<(text: string, options?: { forceSpeak?: boolean }) => Promise<void>>(async () => {});
 
-  // ─── Scroll to bottom helper ───────────────────────────────────────────────
+  // ─── Scroll to bottom helper (Container-scoped, never scrolls window) ───────
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior,
+      });
+    }
   }, []);
 
   useEffect(() => {
     if (isOpen && mode === 'text') {
       scrollToBottom();
       setHasNewBadge(false);
-      setTimeout(() => inputRef.current?.focus(), 150);
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 150);
     }
   }, [isOpen, isMaximized, messages, isLoading, mode, scrollToBottom]);
+
+  // ─── External Trigger Event Listener ─────────────────────────────────────────
+  useEffect(() => {
+    const handleExternalOpen = () => {
+      setIsOpen(true);
+      setHasNewBadge(false);
+      setTimeout(() => {
+        inputRef.current?.focus({ preventScroll: true });
+        scrollToBottom('auto');
+      }, 200);
+    };
+
+    window.addEventListener('open-ara-chatbot', handleExternalOpen);
+    return () => window.removeEventListener('open-ara-chatbot', handleExternalOpen);
+  }, [scrollToBottom]);
+
+  // Do not render floating chatbot on admin pages
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   // ─── Initialize Web Speech API (STT & TTS) ──────────────────────────────────
   useEffect(() => {
@@ -418,12 +313,14 @@ export default function FloatingPfaChatbot() {
       if ('speechSynthesis' in window) {
         synthRef.current = window.speechSynthesis;
         setTtsSupported(true);
-        try {
-          window.speechSynthesis.getVoices();
-          window.speechSynthesis.onvoiceschanged = () => {
-            window.speechSynthesis.getVoices();
-          };
-        } catch {}
+        const loadVoices = () => {
+          const list = window.speechSynthesis.getVoices();
+          if (list && list.length > 0) {
+            voicesRef.current = list;
+          }
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
       }
     }
 
@@ -452,9 +349,13 @@ export default function FloatingPfaChatbot() {
         text.includes('guy') ||
         text.includes('male') ||
         text.includes('pria') ||
+        text.includes('laki') ||
         text.includes('cowok') ||
         text.includes('richard') ||
-        text.includes('stefan')
+        text.includes('stefan') ||
+        text.includes('james') ||
+        text.includes('ryan') ||
+        text.includes('paul')
       );
     };
 
@@ -462,6 +363,7 @@ export default function FloatingPfaChatbot() {
       const text = `${v.name} ${v.voiceURI || ''}`.toLowerCase();
       return (
         text.includes('gadis') ||
+        (text.includes('google') && text.includes('indonesia')) ||
         text.includes('siti') ||
         text.includes('dewi') ||
         text.includes('indah') ||
@@ -469,12 +371,21 @@ export default function FloatingPfaChatbot() {
         text.includes('female') ||
         text.includes('wanita') ||
         text.includes('perempuan') ||
-        text.includes('google bahasa indonesia') ||
-        text.includes('natural')
+        text.includes('natural') ||
+        text.includes('zira') ||
+        text.includes('jenny') ||
+        text.includes('aria')
       );
     };
 
-    // 1. Indonesian voice explicitly female (e.g., Microsoft Gadis Online Natural, Google Bahasa Indonesia, Siti)
+    // 1. Indonesian voice explicitly female (Google Bahasa Indonesia, Microsoft Gadis, Siti, etc.)
+    const topIdFemale = voices.find((v) => {
+      const text = `${v.name} ${v.voiceURI || ''}`.toLowerCase();
+      return !isMale(v) && ((text.includes('google') && text.includes('indonesia')) || text.includes('gadis'));
+    });
+    if (topIdFemale) return topIdFemale;
+
+    // 2. Any Indonesian voice that is explicitly female
     const idFemaleVoice = voices.find((v) => {
       const lang = (v.lang || '').toLowerCase();
       const isId = lang.startsWith('id') || lang.includes('id-') || v.name.toLowerCase().includes('indonesia');
@@ -482,7 +393,7 @@ export default function FloatingPfaChatbot() {
     });
     if (idFemaleVoice) return idFemaleVoice;
 
-    // 2. Any Indonesian voice that is not male
+    // 3. Any Indonesian voice that is not male
     const anyNonMaleId = voices.find((v) => {
       const lang = (v.lang || '').toLowerCase();
       const isId = lang.startsWith('id') || lang.includes('id-') || v.name.toLowerCase().includes('indonesia');
@@ -490,11 +401,11 @@ export default function FloatingPfaChatbot() {
     });
     if (anyNonMaleId) return anyNonMaleId;
 
-    // 3. Fallback: Any explicitly female voice
+    // 4. Fallback: Any explicitly female voice
     const anyFemale = voices.find((v) => !isMale(v) && isExplicitFemale(v));
     if (anyFemale) return anyFemale;
 
-    // 4. Any voice that isn't male
+    // 5. Any voice that isn't male
     const anyNonMale = voices.find((v) => !isMale(v));
     return anyNonMale || voices[0] || null;
   }, []);
@@ -528,10 +439,13 @@ export default function FloatingPfaChatbot() {
 
           const utterance = new SpeechSynthesisUtterance(cleanVoiceText);
           utterance.lang = 'id-ID';
-          utterance.rate = 0.96; // Empathetic counselor cadence
-          utterance.pitch = 1.25; // Sweet, gentle feminine pitch
+          utterance.rate = 0.95; // Empathetic counselor cadence
+          utterance.pitch = 1.35; // Sweet, gentle feminine pitch
 
-          const allVoices = synth.getVoices();
+          let allVoices = synth.getVoices();
+          if (!allVoices || allVoices.length === 0) {
+            allVoices = voicesRef.current;
+          }
           const femaleVoice = pickFemaleVoice(allVoices);
           if (femaleVoice) {
             utterance.voice = femaleVoice;
@@ -672,7 +586,7 @@ export default function FloatingPfaChatbot() {
         }
       } finally {
         setIsLoading(false);
-        setTimeout(() => inputRef.current?.focus(), 100);
+        setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100);
       }
     },
     [isLoading, speakText]

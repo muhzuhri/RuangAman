@@ -1,35 +1,55 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifyAdminToken } from '@/lib/serverAuth';
 
 /**
- * High-Performance Next.js Middleware for Admin Route Protection & Session Pre-validation
- * 
- * Performance Optimizations:
- * 1. Filtered matcher: Runs strictly on `/admin` routes, bypassing static assets and public pages.
- * 2. Fast local cookie check: Pre-validates session cookie without making blocking network calls
- *    to Supabase Auth (`supabase.auth.getUser()`) on every navigation.
- * 3. Bypasses auth checks for `/admin/login` to prevent redirect loops.
+ * Enterprise-Grade Next.js Middleware for Route Protection
+ * Memverifikasi integritas kriptografis token HMAC-SHA256 (admin_token) pada setiap request rute terproteksi.
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Allow unauthenticated access to login page
-  if (pathname === '/admin/login' || pathname.startsWith('/admin/login')) {
+  // 1. Izinkan akses publik tanpa syarat ke halaman login & endpoint login/logout
+  if (
+    pathname === '/admin/login' ||
+    pathname.startsWith('/admin/login') ||
+    pathname === '/api/admin/auth/login' ||
+    pathname === '/api/admin/auth/logout'
+  ) {
     return NextResponse.next();
   }
 
-  // 2. Fast non-blocking cookie check for protected admin routes
-  const adminCookie = request.cookies.get('isAdminLoggedIn')?.value;
+  // 2. Ambil token kriptografis dari HttpOnly Cookie
+  const adminToken = request.cookies.get('admin_token')?.value;
 
-  // If no session cookie exists on server side, redirect to login page immediately
-  if (adminCookie !== 'true') {
+  // 3. Verifikasi tanda tangan HMAC-SHA256 & masa aktif token
+  const payload = await verifyAdminToken(adminToken);
+
+  // 4. Jika token tidak valid / kadaluwarsa / dipalsukan:
+  if (!payload) {
+    // Jika request menuju ke API route internal admin, kirim respons JSON 401 Unauthorized
+    if (pathname.startsWith('/api/admin')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Akses Ditolak: Kredensial Satgas PPKS tidak valid atau sesi telah kedaluwarsa.',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Jika request berupa navigasi halaman browser, redirect ke halaman login
     const loginUrl = new URL('/admin/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // 5. Token valid: Teruskan request dengan header keamanan tambahan
+  const response = NextResponse.next();
+  response.headers.set('X-Admin-User', payload.sub);
+  return response;
 }
 
 export const config = {
-  matcher: ['/admin', '/admin/:path*'],
+  matcher: ['/admin', '/admin/:path*', '/api/admin/:path*'],
 };

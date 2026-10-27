@@ -47,19 +47,36 @@ export default function AdminLoginPage() {
     setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        setAdminAuthSession();
+        router.push('/admin');
+      } else {
+        setError(data.error || 'Username atau password salah. Gunakan kredensial demo Satgas.');
+        setIsLoading(false);
+      }
+    } catch {
+      // Fallback local jika offline total
       if (username === DEMO_USER && password === DEMO_PASS) {
         loginAndRedirect();
       } else {
-        setError('Username atau password salah. Gunakan kredensial demo Satgas.');
+        setError('Gagal menghubungi server autentikasi.');
         setIsLoading(false);
       }
-    }, 600);
+    }
   };
 
   if (isCheckingAuth) {

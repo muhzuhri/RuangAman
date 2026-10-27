@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, type Variants } from 'framer-motion';
-import { ChevronRight, ShieldAlert, KeyRound, Download } from 'lucide-react';
+import { ChevronRight, ShieldAlert, Bot, Download } from 'lucide-react';
 import Link from 'next/link';
 
 const FADE_UP: Variants = {
@@ -30,13 +30,16 @@ export default function GlassmorphismCTA() {
           <ChevronRight className="w-5 h-5" />
         </Link>
 
-        <Link
-          href="/track"
-          className="inline-flex items-center justify-center gap-2.5 bg-[#f0f0f0] hover:bg-stone-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-stone-800 hover:text-stone-900 dark:text-stone-100 font-semibold px-7 py-3.5 rounded-xl transition-colors border border-stone-300 dark:border-gray-600 text-sm"
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('open-ara-chatbot'));
+          }}
+          className="inline-flex items-center justify-center gap-2.5 bg-[#f0f0f0] hover:bg-stone-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-stone-800 hover:text-stone-900 dark:text-stone-100 font-semibold px-7 py-3.5 rounded-xl transition-colors border border-stone-300 dark:border-gray-600 text-sm cursor-pointer shadow-xs active:scale-[0.98]"
         >
-          <KeyRound className="w-4 h-4 text-teal-800 dark:text-teal-400" />
-          <span>Cek status token</span>
-        </Link>
+          <Bot className="w-4 h-4 text-teal-800 dark:text-teal-400" />
+          <span>Chat dengan AI Chatbot</span>
+        </button>
       </div>
 
       {/* Baris Kedua: Tombol Unduh Panduan dengan Gaya Kotak yang Sama */}

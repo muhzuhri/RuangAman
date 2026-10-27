@@ -48,7 +48,7 @@ export default function AdminChatTab({
 }: AdminChatTabProps) {
   const [showInternalNotes, setShowInternalNotes] = useState(false);
   const [searchSidebar, setSearchSidebar] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
 
   const activeCase = selectedReport;
   const messages = activeCase?.messages || [];
@@ -66,10 +66,13 @@ export default function AdminChatTab({
     );
   }, [reports, searchSidebar]);
 
-  // Auto-scroll chat to bottom when messages change
+  // Auto-scroll chat container to bottom when messages change (container-scoped, never scrolls window)
   useEffect(() => {
-    if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0 && chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTo({
+        top: chatScrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }
   }, [messages.length, activeCase?.caseId]);
 
@@ -207,7 +210,7 @@ export default function AdminChatTab({
 
             {/* Chat Messages Stream */}
             <div className="flex-1 flex flex-col justify-between p-4 sm:p-6 space-y-4 bg-stone-50/40 dark:bg-gray-800/40">
-              <div className="flex-1 space-y-3.5 max-h-[380px] overflow-y-auto pr-1 no-scrollbar">
+              <div ref={chatScrollContainerRef} className="flex-1 space-y-3.5 max-h-[380px] overflow-y-auto pr-1 no-scrollbar">
                 {messages.length === 0 ? (
                   <div className="text-center py-16 space-y-3">
                     <div className="w-14 h-14 bg-teal-50 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-gray-600">
@@ -283,7 +286,6 @@ export default function AdminChatTab({
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Chat Input Box */}
