@@ -27,7 +27,7 @@ export type SupabaseStatusInfo = {
 async function fetchWithTimeout(
   resource: string,
   options: RequestInit = {},
-  timeoutMs: number = 3000
+  timeoutMs: number = 15000
 ): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -114,13 +114,35 @@ export async function saveReportToDatabase(report: Report): Promise<{ success: b
     const savedStr =
       typeof window !== 'undefined'
         ? localStorage.getItem('ruang_aman_reports') || localStorage.getItem('aman_kampus_reports')
-        : null;
+      : null;
     const existing: Report[] = savedStr ? JSON.parse(savedStr) : [];
+    
+    // Buat salinan hemat memori untuk localStorage tanpa base64 dataUrl raksasa (mencegah QuotaExceededError di HP)
+    const reportForStorage: Report = {
+      ...report,
+      evidences: report.evidences?.map((ev) => ({
+        ...ev,
+        dataUrl: ev.dataUrl && ev.dataUrl.length < 30000 ? ev.dataUrl : undefined,
+      })),
+    };
+
     const filtered = existing.filter((r) => r.caseId !== report.caseId);
-    filtered.unshift(report);
+    filtered.unshift(reportForStorage);
+    const trimmed = filtered.slice(0, 25);
+
     if (typeof window !== 'undefined') {
-      localStorage.setItem('ruang_aman_reports', JSON.stringify(filtered));
-      localStorage.setItem('aman_kampus_reports', JSON.stringify(filtered));
+      try {
+        localStorage.setItem('ruang_aman_reports', JSON.stringify(trimmed));
+        localStorage.setItem('aman_kampus_reports', JSON.stringify(trimmed));
+      } catch (quotaErr) {
+        // Fallback jika kuota localStorage ponsel penuh: bersihkan seluruh dataUrl bukti lama
+        const stripped = trimmed.slice(0, 10).map((r) => ({
+          ...r,
+          evidences: r.evidences?.map((ev) => ({ ...ev, dataUrl: undefined })),
+        }));
+        localStorage.setItem('ruang_aman_reports', JSON.stringify(stripped));
+        localStorage.setItem('aman_kampus_reports', JSON.stringify(stripped));
+      }
     }
   } catch (e) {
     console.warn('LocalStorage save error:', e);
@@ -151,7 +173,7 @@ export async function saveReportToDatabase(report: Report): Promise<{ success: b
           messages: report.messages,
         }),
       },
-      4000
+      25000 // 25 detik timeout agar unggahan foto dari jaringan seluler ponsel tidak putus di tengah jalan
     );
 
     if (response && response.ok) {

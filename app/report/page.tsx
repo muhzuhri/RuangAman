@@ -60,9 +60,20 @@ import TriageResultPanel from '@/components/TriageResultPanel';
 // ─── Helpers & Config ──────────────────────────────────────────────────────────
 
 const ALLOWED_TYPES = [
+  'image/*',
   'image/jpeg',
+  'image/jpg',
   'image/png',
   'image/webp',
+  'image/heic',
+  'image/heif',
+  '.heic',
+  '.heif',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  'audio/*',
   'audio/mp3',
   'audio/wav',
   'audio/mpeg',
@@ -70,9 +81,14 @@ const ALLOWED_TYPES = [
   'audio/m4a',
   'audio/x-m4a',
   'audio/aac',
+  'video/*',
   'video/mp4',
   'video/webm',
   'video/quicktime',
+  '.mp4',
+  '.mov',
+  '.m4a',
+  '.mp3',
 ];
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -93,8 +109,11 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 function createCompressedDataUrl(file: File): Promise<string> {
+  if (typeof window === 'undefined') return Promise.resolve('');
+  // Untuk berkas non-gambar (audio/video), batasi ukuran base64 maks. 1.5MB agar tidak membebani Vercel & localStorage
   if (!file.type.startsWith('image/')) {
-    return readFileAsDataUrl(file);
+    if (file.size > 1.5 * 1024 * 1024) return Promise.resolve('');
+    return readFileAsDataUrl(file).catch(() => '');
   }
   return new Promise((resolve) => {
     const img = new Image();
@@ -103,10 +122,10 @@ function createCompressedDataUrl(file: File): Promise<string> {
       URL.revokeObjectURL(url);
       const canvas = document.createElement('canvas');
       const maxDim = 800;
-      let w = img.naturalWidth || img.width;
-      let h = img.naturalHeight || img.height;
+      let w = img.naturalWidth || img.width || 800;
+      let h = img.naturalHeight || img.height || 600;
       if (w > maxDim || h > maxDim) {
-        if (w > h) {
+        if (w >= h) {
           h = Math.round((h * maxDim) / w);
           w = maxDim;
         } else {
@@ -121,12 +140,13 @@ function createCompressedDataUrl(file: File): Promise<string> {
         ctx.drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL('image/jpeg', 0.75));
       } else {
-        readFileAsDataUrl(file).then(resolve).catch(() => resolve(''));
+        resolve('');
       }
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      readFileAsDataUrl(file).then(resolve).catch(() => resolve(''));
+      // Jangan membaca file mentah berukuran puluhan MB ke base64 saat error decode gambar
+      resolve('');
     };
     img.src = url;
   });
@@ -288,7 +308,7 @@ export default function ReportPage() {
         file.type.startsWith('image/') ||
         file.type.startsWith('audio/') ||
         file.type.startsWith('video/') ||
-        /\.(png|jpe?g|webp|gif|mp3|wav|ogg|m4a|aac|flac|mp4|webm|mov|mkv)$/i.test(file.name);
+        /\.(png|jpe?g|webp|gif|heic|heif|bmp|mp3|wav|ogg|m4a|aac|flac|mp4|webm|mov|mkv)$/i.test(file.name);
 
       if (!isMedia) {
         errs.push(`"${file.name}" — Ditolak: Hanya berkas Foto, Video, dan Audio yang diizinkan sebagai bukti forensik.`);
@@ -575,28 +595,6 @@ export default function ReportPage() {
         caseId,
         evidences.map((ev) => ev.sha256)
       );
-
-      // Pemicu Notifikasi Real-Time Satgas (Telegram) Lengkap untuk Setiap Laporan
-      try {
-        await fetch('/api/report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            token: newReport.anonymousToken,
-            caseId: newReport.caseId,
-            category: newReport.category,
-            incidentTime: newReport.incidentTime,
-            involvedParties: newReport.involvedParties,
-            targetFaculty: newReport.targetFaculty,
-            chronology: newReport.chronology,
-            evidencesCount: newReport.evidences?.length || 0,
-            aiTriage: newReport.aiTriage,
-            receivedAt: newReport.receivedAt,
-          }),
-        });
-      } catch (tgErr) {
-        console.warn('[Report] Notifikasi Telegram Satgas gagal terkirim:', tgErr);
-      }
     } catch (e) {
       console.warn('Gagal menyimpan laporan:', e);
     }
@@ -876,7 +874,7 @@ export default function ReportPage() {
                         Klik untuk memilih berkas atau drag & drop
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Foto (JPG/PNG/WEBP), Audio (MP3/WAV/OGG/M4A), atau Video (MP4/WEBM/MOV) — Maks. {MAX_FILE_SIZE_MB}MB
+                        Foto (JPG/PNG/WEBP/HEIC kamera ponsel), Audio (MP3/WAV/OGG/M4A), atau Video (MP4/WEBM/MOV) — Maks. {MAX_FILE_SIZE_MB}MB
                       </p>
                     </div>
 

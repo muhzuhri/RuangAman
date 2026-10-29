@@ -40,7 +40,7 @@ function generateFallbackResponse(
   const isCritical = riskLevel === 'CRITICAL';
   const isHigh = riskLevel === 'HIGH';
 
-  if (mode === 'initial_plan') {
+  if (mode === 'initial_plan' || !question || question.toLowerCase().includes('rencana strategis')) {
     return `### 📋 REKOMENDASI STRATEGIS PENANGANAN KASUS (${caseId})
 **Analisis Terpadu Berdasarkan Fakta Pelapor, Tingkat Risiko & Bukti Digital**
 
@@ -66,11 +66,11 @@ function generateFallbackResponse(
 #### 2. ⚡ Rencana Aksi Satgas PPKS (Action Plan Bertahap)
 1. **Langkah 1: Pengamanan & Proteksi Korban (0 - 24 Jam)**
    - Berikan jaminan kerahasiaan penuh (*Zero-Knowledge Guarantee*).
-   - Pastikan korban tidak berada dalam lingkungan yang sama dengan terlapor bila terjadi ancaman intimidasi.
-   - Terbitkan surat perlindungan sementara dari Ketua Satgas PPKS bila korban mengalami trauma atau teror.
+   - Pastikan korban tidak berada dalam lingkungan atau jadwal akademik yang sama dengan terlapor bila terjadi ancaman intimidasi.
+   - Terbitkan surat perlindungan sementara dari Ketua Satgas PPKS bila korban mengalami trauma atau intimidasi.
 2. **Langkah 2: Validasi Berkas & Pengumpulan Keterangan (1 - 3 Hari)**
    - Periksa keabsahan bukti digital (verifikasi hash SHA-256 dan catatan otentikasi pelapor).
-   - Jika diperlukan, jadwalkan wawancara terpisah dan terlindung dengan pelapor (dilarang mengonfrontasi langsung dengan terlapor).
+   - Jadwalkan wawancara terpisah dan terlindung dengan pelapor (dilarang mengonfrontasi langsung dengan pihak terlapor).
 3. **Langkah 3: Pemanggilan Klarifikasi Terlapor (3 - 7 Hari)**
    - Layangkan surat panggilan tertutup resmi melalui Unit/Fakultas terkait.
    - Catat Berita Acara Pemeriksaan (BAP) dengan fokus pada substansi kronologi aduan.
@@ -79,12 +79,12 @@ function generateFallbackResponse(
 
 #### 3. 🛡️ Protokol Pemulihan & Konseling Psikologis (PFA)
 - Rujuk korban ke Unit Layanan Konseling Psikologis Kampus untuk penanganan trauma atau kecemasan.
-- Rekomendasikan dispensasi kehadiran akademik / perkuliahan sementara jika korban mengalami gangguan psikologis berat.
+- Rekomendasikan dispensasi kehadiran akademik / perkuliahan sementara jika korban mengalami trauma berat.
 
 ---
 
 #### 4. ⚖️ Landasan Regulasi & Rekomendasi Sanksi
-- **Rujukan Hukum:** Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual di Lingkungan Perguruan Tinggi, serta Kode Etik Civitas Akademika.
+- **Rujukan Hukum:** Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual di Lingkungan Perguruan Tinggi, serta UU TPKS No. 12 Tahun 2022.
 - **Rekomendasi Sanksi Administratif:**
   ${
     isCritical
@@ -98,19 +98,25 @@ function generateFallbackResponse(
   // Chat Mode Fallback
   const qLower = (question || '').toLowerCase();
 
-  if (qLower.includes('bukti') || qLower.includes('forensik') || qLower.includes('cukup')) {
-    return `Berdasarkan analisis berkas bukti kasus **${caseId}**:
-- Terdapat **${evidenceCount} berkas bukti digital** yang terdaftar di sistem.
-- ${
-      evidenceCount > 0
-        ? 'Bukti telah tervalidasi menggunakan pemeriksaan Magic-Bytes dan SHA-256 Checksum, serta bebas dari metadata pribadi (EXIF Stripped). Secara prosedural, bukti ini SAH untuk dijadikan dasar klarifikasi awal dan pemeriksaan terlapor.'
-        : 'Saat ini belum ada lampiran berkas bukti file. Namun sesuai Pasal 39 Permendikbudristek No. 30/2021, keterangan kronologis pelapor yang konsisten sudah cukup untuk memulai pemeriksaan awal tanpa harus menunggu bukti sempurna.'
-    }
-- **Saran Tindakan:** Tetap simpan riwayat hash biner dan otentikasi pelapor untuk lampiran Berita Acara Pemeriksaan (BAP).`;
+  // 1. Bukti & Forensik
+  if (qLower.includes('bukti') || qLower.includes('forensik') || qLower.includes('valid') || qLower.includes('cukup') || qLower.includes('screenshot') || qLower.includes('rekaman')) {
+    return `Halo tim Satgas, menanggapi pertanyaan Anda mengenai **alat bukti kasus ${caseId}**:
+
+1. **Kekuatan Bukti Digital:**
+   - Tercatat **${evidenceCount} berkas bukti digital** pada laporan ini.
+   - ${
+     evidenceCount > 0
+       ? 'Seluruh berkas bukti telah melewati pemeriksaan biner Magic-Bytes dan enkripsi hash SHA-256 Checksum, serta metadata sensitif (EXIF GPS) telah disanitasi. Secara forensik digital, berkas ini otentik dan memenuhi syarat pembuktian awal.'
+       : 'Saat ini belum ada berkas digital yang diunggah. Namun berdasarkan **Pasal 39 Permendikbudristek No. 30/2021**, keterangan kronologis pelapor yang konsisten sudah sah menjadi dasar penyelidikan Satgas tanpa harus menunggu bukti sempurna.'
+   }
+2. **Langkah Verifikasi Satgas:**
+   - Cocokkan stempel waktu (*timestamp*) pada kronologi dengan berkas bukti terkait.
+   - Catat hash SHA-256 pada Berita Acara Pemeriksaan (BAP) agar integritas rantai bukti (*chain of custody*) terjamin di mata hukum.`;
   }
 
-  if (qLower.includes('surat') || qLower.includes('panggilan') || qLower.includes('draf')) {
-    return `Berikut draf **Surat Panggilan Klarifikasi Terlapor** resmi:
+  // 2. Surat Panggilan & Draf Resmi
+  if (qLower.includes('surat') || qLower.includes('panggilan') || qLower.includes('undangan') || qLower.includes('klarifikasi') || qLower.includes('draf') || qLower.includes('bap')) {
+    return `Berikut draf **Surat Panggilan Klarifikasi Terlapor** resmi yang siap digunakan oleh Satgas PPKS:
 
 \`\`\`text
 NOMOR: 042/SATGAS-PPKS/KLARIFIKASI/${new Date().getFullYear()}
@@ -126,46 +132,97 @@ Sehubungan dengan adanya laporan aduan dugaan pelanggaran etik dan keselamatan k
 
 Hari/Tanggal : [Tentukan Hari, Tanggal]
 Waktu        : 10.00 WIB - Selesai
-Tempat       : Ruang Konsultasi Khusus Satgas PPKS (Gedung Rektorat Lt. 2)
+Tempat       : Ruang Konsultasi Khusus Satgas PPKS (Gedung Rektorat)
 Agenda       : Pemberian Keterangan & Klarifikasi atas Dugaan Pelanggaran Etik
 
-Saudara/i berhak memberikan keterangan dengan didampingi atau secara mandiri. Demi integritas proses pemeriksaan, pertemuan ini bersifat tertutup dan mengikat secara disipliner akademik.
+Saudara/i berhak memberikan keterangan secara tertib dan didampingi bila diperlukan. Demi integritas proses pemeriksaan, pertemuan ini bersifat tertutup dan mengikat secara disipliner akademik.
 
 Demikian undangan ini kami sampaikan. Atas kerja sama Saudara/i, kami ucapkan terima kasih.
 
-Satgas PPKS Universitas
+Satgas PPKS Perguruan Tinggi
 [Tanda Tangan & Cap Resmi]
-\`\`\``;
+\`\`\`
+
+💡 *Tips Ara:* Pastikan surat dikirimkan secara tertutup (dalam amplop bersegel atau email resmi berenkripsi) demi mencegah kebocoran informasi dan rumor di fakultas.`;
   }
 
-  if (qLower.includes('mediasi') || qLower.includes('damai')) {
-    return `⚠️ **Peringatan Protokol Mediasi untuk Kasus ${caseId}:**
-1. **Dilarang Mediasi Tatap Muka Langsung:** Korban kekerasan seksual, intimidasi, atau perundungan **TIDAK BOLEH** dipaksa berada di satu ruangan dengan terlapor.
-2. **Prinsip Bebas Relasi Kuasa:** Jika terdapat ketimpangan status (misal dosen vs mahasiswa, atau senior vs junior), mediasi biasa tidak diperkenankan karena berisiko manipulasi dan intimidasi lanjutan.
-3. **Pemeriksaan Secara *Shuttle*:** Satgas disarankan melakukan dengar pendapat terpisah (metode *shuttle consultation*), di mana Satgas menjadi perantara penyampaian fakta dan komitmen penyelesaian.`;
+  // 3. Mediasi & Konfrontasi
+  if (qLower.includes('mediasi') || qLower.includes('damai') || qLower.includes('tatap muka') || qLower.includes('konfrontasi')) {
+    return `⚠️ **Peringatan Penting Protokol Mediasi untuk Kasus ${caseId}:**
+
+1. **Larangan Mediasi Tatap Muka Langsung:**
+   Berdasarkan Permendikbudristek No. 30/2021 dan standar penanganan korban kekerasan, **korban TIDAK BOLEH dikonfrontasi atau dipertemukan langsung dalam satu ruangan dengan terlapor**, terutama bila ada unsur intimidasi atau ketimpangan relasi kuasa.
+2. **Gunakan Metode *Shuttle Consultation* (Pemeriksaan Terpisah):**
+   Satgas bertindak sebagai fasilitator independen yang memeriksa kedua belah pihak di waktu dan ruangan yang terpisah secara bergantian.
+3. **Persetujuan Penuh Korban (*Informed Consent*):**
+   Segala bentuk penyelesaian damai atau musyawarah hanya dapat dipertimbangkan jika korban secara sadar, tanpa tekanan atau intimidasi, mengajukannya secara tertulis.`;
   }
 
-  if (qLower.includes('sanksi') || qLower.includes('hukum') || qLower.includes('pasal')) {
-    return `Rujukan hukum dan sanksi untuk kasus kategori **${category}** (Tingkat Risiko: **${riskLevel}**):
-1. **Dasar Hukum Utama:**
-   - Permendikbudristek No. 30 Tahun 2021 tentang Pencegahan dan Penanganan Kekerasan Seksual di Perguruan Tinggi.
-   - UU No. 12 Tahun 2022 tentang Tindak Pidana Kekerasan Seksual (TPKS).
-2. **Kualifikasi Sanksi Administratif:**
-   - **Ringan:** Teguran tertulis atau pernyataan permohonan maaf tertulis yang dipublikasikan secara internal.
-   - **Sedang:** Pemberhentian sementara dari jabatan akademik/kepengurusan ormawa atau skorsing perkuliahan.
-   - **Berat:** Pemberhentian tetap dengan tidak hormat dari status mahasiswa, dosen, atau tenaga kependidikan.
-3. **Catatan Penting:** Pengenaan sanksi administratif kampus tidak menghapuskan tanggung jawab hukum pidana bila korban memilih meneruskan kasus ke penegak hukum.`;
+  // 4. Sanksi & Regulasi
+  if (qLower.includes('sanksi') || qLower.includes('hukum') || qLower.includes('pasal') || qLower.includes('skorsing') || qLower.includes('drop out') || qLower.includes('do')) {
+    return `Berikut kajian rujukan sanksi dan pasal regulasi untuk kasus **${caseId}** (${category}):
+
+1. **Landasan Hukum Utama:**
+   - **Permendikbudristek No. 30 Tahun 2021** (Pasal 10 hingga 19 tentang Sanksi Administratif).
+   - **UU No. 12 Tahun 2022** tentang Tindak Pidana Kekerasan Seksual (TPKS).
+2. **Tingkatan Sanksi Administratif Kampus:**
+   - **Sanksi Ringan:** Teguran tertulis dan pernyataan permohonan maaf tertulis internal.
+   - **Sanksi Sedang:** Skorsing akademik 1-2 semester, pencabutan hak beasiswa, atau pelepasan jabatan struktural/organisasi.
+   - **Sanksi Berat:** Pemberhentian tetap tidak dengan hormat (Drop Out bagi mahasiswa, atau pemecatan bagi tenaga pendidik).
+3. **Catatan Satgas:** Pemberian sanksi administratif internal kampus bersifat independen dan tidak menggugurkan hak korban bila ingin menempuh jalur hukum kepolisian.`;
   }
 
-  // Generic contextual answer
-  return `Menanggapi pertanyaan Anda terkait kasus **${caseId}** (${category}):
+  // 5. Relasi Kuasa / Dosen / Pejabat Kampus
+  if (qLower.includes('dosen') || qLower.includes('kuasa') || qLower.includes('pejabat') || qLower.includes('dekan') || qLower.includes('pembimbing') || qLower.includes('senior')) {
+    return `🛡️ **Panduan Penanganan Kasus Relasi Kuasa (Kasus ${caseId}):**
 
-Berdasarkan data laporan masuk tanggal **${caseData.receivedAt}** dengan status risiko **${riskLevel}**:
-1. **Konteks Kronologi:** Narasi pelapor mengindikasikan perlunya tindak lanjut yang memprioritaskan keselamatan korban di lingkungan ${targetFaculty || 'kampus'}.
-2. **Langkah Taktis Satgas:** Rekomendasi utama adalah memverifikasi kronologi secara internal, memastikan korban mendapatkan pendampingan psikologis (PFA), dan menyiapkan pemanggilan terlapor secara tertutup.
-3. **Proteksi Bukti:** Pastikan bukti digital terlampir (${evidenceCount} file) tetap tersegel dengan validasi hash SHA-256 untuk menjaga integritas pembuktian.
+1. **Mitigasi Tekanan Akademik:**
+   Jika pihak terlapor memiliki kewenangan akademik terhadap korban (misal: dosen pembimbing, penguji, atau dosen pengampu mata kuliah), Satgas wajib segera merekomendasikan penggantian dosen pembimbing/penguji ke pihak dekanat demi menghindari nilai yang disandera (*academic retaliation*).
+2. **Independensi Satgas PPKS:**
+   Sesuai mandat kementerian, Satgas PPKS bertanggung jawab langsung kepada Rektor, bukan kepada Dekan atau Kepala Program Studi. Hal ini menjamin proses klarifikasi bebas dari intervensi struktural fakultas.
+3. **Kerahasiaan Identitas (Zero-Knowledge):**
+   Jangan pernah membocorkan identitas saksi atau korban kepada pihak fakultas sebelum ada putusan resmi perlindungan.`;
+  }
 
-Silakan ajukan pertanyaan lebih spesifik bila Anda membutuhkan draf surat pemanggilan, analisis kekuatan bukti, atau rekomendasi sanksi hukum.`;
+  // 6. Pendampingan Korban, Trauma & PFA
+  if (qLower.includes('korban') || qLower.includes('trauma') || qLower.includes('psikologis') || qLower.includes('pfa') || qLower.includes('cemas') || qLower.includes('takut') || qLower.includes('visum') || qLower.includes('medis')) {
+    return `💚 **Protokol Perlindungan & Pendampingan Korban (${caseId}):**
+
+1. **Psychological First Aid (PFA):**
+   - Validasi perasaan korban: Dengarkan tanpa menghakimi dan yakinkan bahwa keberanian mereka berbicara sangat dihargai.
+   - Rujuk ke Konselor Psikologis Kampus / Layanan Konseling Mitra RuangAman.
+2. **Surat Dispensasi Akademik Sementara:**
+   Satgas dapat menerbitkan surat rekomendasi dispensasi presensi kuliah atau penundaan ujian selama korban menjalani masa pemulihan trauma.
+3. **Fasilitasi Medis / Visum (Jika Diperlukan):**
+   Bila kasus melibatkan kontak fisik atau kekerasan yang memerlukan bukti visum *et repertum*, dampingi korban ke fasilitas kesehatan rujukan resmi kampus secara tertutup dan bermartabat.`;
+  }
+
+  // 7. Saksi & Intimidasi
+  if (qLower.includes('saksi') || qLower.includes('intimidasi') || qLower.includes('ancaman') || qLower.includes('teror') || qLower.includes('lindungi')) {
+    return `🚨 **Prosedur Perlindungan Saksi & Anti-Intimidasi (${caseId}):**
+
+1. **Jaminan Kerahasiaan Saksi:**
+   Identitas saksi dilindungi dan tidak dicantumkan dalam salinan BAP yang diberikan kepada terlapor.
+2. **Peringatan Keras kepada Terlapor:**
+   Dalam surat panggilan pertama, sertakan klausul larangan keras (*restraining notice*) untuk menghubungi, mendekati, atau mengintimidasi pelapor maupun saksi, baik secara langsung maupun via media sosial. Pelanggaran terhadap klausul ini otomatis memperberat sanksi akhir.`;
+  }
+
+  // 8. General Dynamic Contextual Answer
+  return `Halo tim Satgas PPKS, menanggapi pertanyaan Anda terkait kasus **${caseId}** (${category}):
+
+Berdasarkan tinjauan data laporan (Tingkat Urgensi: **${riskLevel}**, Skor: **${caseData.urgencyScore}/100**, Bukti: **${evidenceCount} berkas**):
+
+1. **Analisis Terhadap Pertanyaan Anda:**
+   Mengenai hal yang Anda konsultasikan: *" ${question} "*
+   Satgas disarankan untuk selalu mengedepankan prinsip kehati-hatian (*duty of care*), memprioritaskan keselamatan fisik dan psikologis korban di lingkungan ${targetFaculty || 'kampus'}, serta mendokumentasikan setiap temuan dalam Berita Acara Pemeriksaan resmi.
+
+2. **Rekomendasi Tindakan Satgas:**
+   - Lakukan verifikasi kronologis secara tertutup dan hindari segala potensi konfrontasi langsung dengan terlapor.
+   - Pastikan rantai keabsahan bukti digital (${evidenceCount} berkas) tetap terjaga dengan validasi hash SHA-256.
+   - Berikan pendampingan psikologis awal (PFA) kepada pihak pelapor jika terindikasi mengalami kecemasan atau trauma.
+
+3. **Langkah Lanjutan:**
+   Apakah Anda ingin Ara membantu membuatkan **draf surat panggilan klarifikasi**, **analisis pasal regulasi Permendikbud**, atau **format Berita Acara Pemeriksaan (BAP)** untuk kasus ini?`;
 }
 
 // ─── Gemini API Multi-turn Caller ───────────────────────────────────────────
@@ -181,26 +238,44 @@ async function callGeminiAdvisorAPI(
     throw new Error('GEMINI_API_KEY tidak dikonfigurasi.');
   }
 
-  const systemInstruction = `Anda adalah Asisten Analisis & Rekomendasi Penanganan Kasus (AI Case Advisor) khusus Satgas PPKS Kampus di platform RuangAman.
+  const systemInstruction = `Kamu adalah Ara, AI Satgas Advisor resmi untuk penanganan kasus di platform RuangAman. Kamu bertindak sebagai asisten investigasi, analisis hukum kampus, dan penasihat strategis bagi tim Satgas PPKS (Pencegahan dan Penanganan Kekerasan Seksual).
 
 DATA KASUS AKTIF YANG SEDANG DITANGANI:
 - ID Kasus: ${caseData.caseId}
 - Kategori Pelanggaran: ${caseData.category}
 - Kronologi Kejadian: "${caseData.chronology}"
 - Tingkat Risiko: ${caseData.riskLevel} (Skor Urgensi: ${caseData.urgencyScore}/100)
-- Fakultas / Unit: ${caseData.targetFaculty || 'Umum Kampus'}
+- Fakultas / Unit Terkait: ${caseData.targetFaculty || 'Lingkup Kampus Umum'}
 - Tanggal Diterima: ${caseData.receivedAt}
 - Status Penanganan: ${caseData.status}
 - Ringkasan Bukti Digital: ${caseData.evidenceSummary || 'Tidak ada catatan bukti manipulasi'} (Total: ${caseData.evidenceCount || 0} berkas)
 
-TUGAS ANDA:
-1. Berikan rekomendasi yang SANGAT SPESIFIK, OBJEKTIF, TAKTIS, dan HUKUM KAMPUS (berdasarkan Permendikbudristek No. 30 Tahun 2021 dan UU TPKS No. 12 Tahun 2022).
-2. Jika admin meminta "Saran Penanganan", susun rencana penanganan terstruktur (Evaluasi Fakta, Rencana Aksi Bertahap, Pemulihan Korban, dan Rekomendasi Sanksi).
-3. Jika admin mengajukan pertanyaan khusus (misal membuat draf surat panggilan, evaluasi bukti, atau tata cara mediasi), jawab secara taktis, berikan format resmi atau solusi praktis.
-4. Gunakan gaya bahasa profesional, lugas, dan terstruktur dengan rapi.
-5. PENTING: Output jawaban Anda HARUS LENGKAP dan SELESAI sampai kalimat penutup terakhir. DILARANG BERHENTI di tengah kalimat atau menyisakan bagian menggantung.`;
+PANDUAN & ATURAN RESPON:
+1. IDENTITAS & NADA BICARA:
+   - Kamu adalah Ara versi Satgas Advisor: cerdas, objektif, solutif, empatik terhadap korban, tegas terhadap pelanggaran norma kampus, dan berwawasan regulasi perguruan tinggi yang mendalam.
+   - Nada bicara: profesional, suportif, berwibawa, dan terstruktur.
 
-  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+2. JAWAB LANGSUNG PERTANYAAN ADMIN:
+   - Jawablah SECARA SPESIFIK dan MENDALAM sesuai dengan apa yang ditanyakan admin. DILARANG KERAS memberikan jawaban generik atau шаблон statis.
+   - Jika admin menanyakan hal spesifik (misal: bagaimana menangani dosen pembimbing yang terlapor, apakah bukti chat WhatsApp cukup kuat, bagaimana prosedur visum, bagaimana draf surat panggilan), jawab langsung esensi pertanyaan tersebut dengan mengaitkan fakta kasus ${caseData.caseId}.
+   - Jika admin meminta saran penanganan menyeluruh (mode initial_plan), berikan rencana strategis komprehensif 4 pilar (Evaluasi Fakta, Rencana Aksi Bertahap, Pemulihan Korban, dan Rekomendasi Sanksi).
+   - Jika admin meminta draf surat atau dokumen, berikan draf lengkap siap pakai dalam format Markdown code block.
+
+3. KEPATUHAN REGULASI:
+   - Selalu rujuk pada Permendikbudristek No. 30 Tahun 2021 dan UU TPKS No. 12 Tahun 2022.
+   - Ingatkan bahwa mediasi tatap muka dilarang untuk kekerasan seksual atau relasi kuasa.
+
+4. FORMATTING:
+   - Gunakan format Markdown yang rapi (headings ###, bullet points, bold untuk istilah penting).
+   - Pastikan jawaban lengkap dan tuntas, tidak terpotong di tengah jalan.`;
+
+  // Model candidate priority: gemini-3.5-flash-lite, gemini-3.8-flash, gemini-flash-latest
+  const candidateModels = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+  ];
+
   let lastError: Error | null = null;
 
   for (const model of candidateModels) {
@@ -209,24 +284,24 @@ TUGAS ANDA:
 
       let promptText = '';
       if (mode === 'initial_plan') {
-        promptText = `Mohon buatkan Saran Rekomendasi Penanganan Kasus LENGKAP, TUNTAS, dan TERSTRUKTUR untuk kasus ${caseData.caseId} berdasarkan seluruh data kronologi dan tingkat risiko di atas.
-Pastikan mencakup:
-1. Evaluasi Objektif & Analisis Fakta Kasus
-2. Rencana Aksi Bertahap Satgas PPKS (Tahap 1 Klarifikasi, Tahap 2 Pemeriksaan Terlapor, Tahap 3 Rekomendasi Putusan)
-3. Protokol Perlindungan & Pemulihan Korban
-4. Rekomendasi Sanksi Administratif Sesuai Regulasi Kampus
-PENTING: Tulis seluruh uraian secara lengkap dan selesaikan sampai tuntas, jangan terpotong di tengah kalimat.`;
+        promptText = `Mohon buatkan Saran Rekomendasi Rencana Strategis Penanganan Kasus yang LENGKAP, TUNTAS, dan TERSTRUKTUR untuk kasus register ${caseData.caseId} (${caseData.category}) dengan tingkat risiko ${caseData.riskLevel} (Skor: ${caseData.urgencyScore}/100).
+Rincikan secara profesional:
+1. Evaluasi Objektif & Analisis Fakta Kasus (berdasarkan kronologi dan status forensik bukti).
+2. Rencana Aksi Bertahap Satgas PPKS (Tahap 1: 0-24 Jam Perlindungan Korban, Tahap 2: 1-3 Hari Verifikasi & Wawancara Terpisah, Tahap 3: 3-7 Hari Pemanggilan Terlapor & BAP).
+3. Protokol Perlindungan & Pemulihan Korban (Layanan Konseling Psikologis/PFA, Perlindungan Anti-Intimidasi & Retaliasi, serta Dispensasi Akademik).
+4. Rekomendasi Sanksi Administratif Sesuai Regulasi Kampus (Permendikbudristek No. 30/2021 & UU TPKS No. 12/2022).
+PENTING: Tuliskan secara tuntas dan rapi dengan format markdown yang jelas.`;
       } else {
-        promptText = `${question || 'Bagaimana saran langkah penanganan terbaik untuk kasus ini?'}\n(Catatan: Berikan jawaban yang tuntas dan lengkap).`;
+        promptText = `${question || 'Bagaimana saran langkah penanganan terbaik untuk kasus ini?'}\n(Instruksi Ara: Jawablah langsung, cerdas, solutif, dan spesifik sesuai pertanyaan di atas dengan mempertimbangkan data kasus ${caseData.caseId}).`;
       }
 
       const contents = [
         ...history.map((msg) => ({
-          role: msg.role === 'model' ? 'model' : 'user',
+          role: msg.role === 'model' ? ('model' as const) : ('user' as const),
           parts: [{ text: msg.text }],
         })),
         {
-          role: 'user',
+          role: 'user' as const,
           parts: [{ text: promptText }],
         },
       ];
@@ -240,28 +315,31 @@ PENTING: Tulis seluruh uraian secara lengkap dan selesaikan sampai tuntas, janga
             parts: [{ text: systemInstruction }],
           },
           generationConfig: {
-            temperature: 0.25,
-            maxOutputTokens: 4000,
+            temperature: 0.35,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2500,
           },
         }),
+        signal: AbortSignal.timeout(15000), // 15 detik timeout
       });
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`Gemini API Error [${res.status}]: ${errText}`);
+        throw new Error(`Gemini API Error [${res.status} on ${model}]: ${errText}`);
       }
 
       const data = await res.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (!text) {
+      if (!text || text.trim().length === 0) {
         throw new Error('Gemini API mengembalikan respons kosong.');
       }
 
-      return text;
+      return text.trim();
     } catch (err: unknown) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`Model ${model} gagal, mencoba model berikutnya...`, lastError.message);
+      console.warn(`[Case Advisor AI] Model ${model} terkendala:`, lastError.message);
     }
   }
 
@@ -283,13 +361,15 @@ export async function POST(req: NextRequest) {
     }
 
     let responseText = '';
+    let usedFallback = false;
 
     // Coba via Gemini API terlebih dahulu
     try {
       responseText = await callGeminiAdvisorAPI(caseData, mode, question, history);
     } catch (apiErr) {
-      console.warn('Menggunakan fallback cerdas AI Case Advisor:', apiErr);
+      console.warn('[Case Advisor AI] Menggunakan fallback cerdas AI Case Advisor:', apiErr);
       responseText = generateFallbackResponse(caseData, mode, question);
+      usedFallback = true;
     }
 
     return NextResponse.json({
@@ -298,6 +378,7 @@ export async function POST(req: NextRequest) {
         text: responseText,
         caseId: caseData.caseId,
         timestamp: new Date().toISOString(),
+        _respondedBy: usedFallback ? 'fallback' : 'gemini',
       },
     });
   } catch (err: unknown) {

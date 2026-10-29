@@ -62,8 +62,26 @@ export function validateFileSignature(file: File, buffer: ArrayBuffer): FileVali
       bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) {
     return { valid: true, detectedType: 'audio/wav', isExecutableOrScript: false, message: 'Tervalidasi WAV Audio Stream.' };
   }
-  // MP4 / MOV: ftyp at offset 4
+  // MP4 / MOV Video or HEIC / HEIF Image: ftyp at offset 4
   if (bytes.length >= 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    let brand = '';
+    if (bytes.length >= 12) {
+      brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+    }
+    const isHeic =
+      ['heic', 'heix', 'hevc', 'heim', 'heis', 'mif1', 'msf1'].includes(brand) ||
+      file.type.includes('heic') ||
+      file.type.includes('heif') ||
+      /\.(heic|heif)$/i.test(file.name);
+
+    if (isHeic) {
+      return {
+        valid: true,
+        detectedType: 'image/heic',
+        isExecutableOrScript: false,
+        message: 'Tervalidasi HEIC/HEIF Image Container (Foto Kamera Smartphone).',
+      };
+    }
     return { valid: true, detectedType: 'video/mp4', isExecutableOrScript: false, message: 'Tervalidasi MP4/MOV Container.' };
   }
   // WEBM: 1A 45 DF A3
@@ -92,10 +110,33 @@ export function validateFileSignature(file: File, buffer: ArrayBuffer): FileVali
     return { valid: false, detectedType: 'application/pdf', isExecutableOrScript: false, message: 'Ditolak: Dokumen PDF tidak diizinkan sebagai bukti forensik. Harap unggah berkas Foto, Video, atau Audio.' };
   }
 
-  // 4) Verifikasi Berdasarkan Tipe MIME Browser (Jika format valid terdaftar)
-  const allowedMediaMime = ['image/jpeg', 'image/png', 'image/webp', 'audio/mp3', 'audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/m4a', 'video/mp4', 'video/webm', 'video/quicktime'];
-  if (allowedMediaMime.includes(file.type)) {
+  // 4) Verifikasi Berdasarkan Tipe MIME Browser & Ekstensi Kamera Smartphone
+  const allowedMediaMime = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'image/gif',
+    'audio/mp3',
+    'audio/wav',
+    'audio/mpeg',
+    'audio/ogg',
+    'audio/m4a',
+    'audio/x-m4a',
+    'audio/aac',
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+  ];
+  if (allowedMediaMime.includes(file.type.toLowerCase())) {
     return { valid: true, detectedType: file.type, isExecutableOrScript: false, message: 'Tervalidasi berbasis tipe MIME media browser.' };
+  }
+
+  // Fallback ekstensi file foto umum kamera hp jika browser tidak mengirim MIME type lengkap
+  if (/\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(file.name)) {
+    return { valid: true, detectedType: 'image/jpeg', isExecutableOrScript: false, message: 'Tervalidasi berkas gambar kamera.' };
   }
 
   return { valid: false, detectedType: 'Unknown', isExecutableOrScript: false, message: 'Format berkas tidak didukung (Hanya berkas Foto, Video, dan Audio yang diizinkan).' };
@@ -167,51 +208,108 @@ export function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
 }
 
 /**
- * Pembersihan Metadata (EXIF Stripping) untuk Berkas Gambar.
- * Menggambar ulang gambar ke Canvas HTML5 untuk menghapus tag EXIF (GPS, Kamera, Editor Software),
- * menghasilkan file gambar bersih yang menjamin privasi lokasi pelapor tanpa mengubah isi visual bukti.
+ * Pembersihan Metadata (EXIF Stripping) & Optimasi Berkas Gambar Kamera Smartphone.
+ * 1. Mengonversi berkas HEIC/HEIF (kamera bawaan iPhone/Samsung) menjadi JPEG standar.
+ * 2. Menggambar ulang gambar ke Canvas HTML5 untuk menghapus tag EXIF (GPS, Kamera, Editor Software).
+ * 3. Menyesuaikan dimensi kamera megapixel tinggi (12MP-108MP) ke resolusi 2K (maks. 2048px) agar
+ *    tidak menyebabkan tab crash pada browser ponsel dan menjaga ukuran payload di bawah limit Vercel (4.5MB).
  */
 export async function stripExifFromImage(file: File): Promise<{ cleanFile: File; stripped: boolean }> {
-  if (file.type.startsWith('image/')) {
+  const isHeic =
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    /\.(heic|heif)$/i.test(file.name);
+
+  let workingFile = file;
+
+  // 1) Konversi HEIC/HEIF jika gambar berasal dari kamera iOS / modern Android
+  if (isHeic && typeof window !== 'undefined') {
+    try {
+      const heic2anyModule = await import('heic2any');
+      const heic2any = heic2anyModule.default || heic2anyModule;
+      const conversion = await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.88,
+      });
+      const blob = Array.isArray(conversion) ? conversion[0] : conversion;
+      const jpgName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+      workingFile = new File([blob], jpgName, {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+    } catch (heicErr) {
+      console.warn('[stripExifFromImage] Gagal memproses format HEIC via heic2any:', heicErr);
+    }
+  }
+
+  const isImageTarget =
+    workingFile.type.startsWith('image/') ||
+    /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(workingFile.name);
+
+  if (isImageTarget && typeof window !== 'undefined') {
     return new Promise((resolve) => {
       const img = new Image();
-      const url = URL.createObjectURL(file);
+      const url = URL.createObjectURL(workingFile);
 
       img.onload = () => {
         URL.revokeObjectURL(url);
 
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
+        const MAX_DIM = 2048; // Resolusi 2K HD: tetap jernih untuk forensik teks/wajah tanpa membebani RAM ponsel
+        let targetWidth = img.naturalWidth || img.width || 1280;
+        let targetHeight = img.naturalHeight || img.height || 720;
+
+        if (targetWidth > MAX_DIM || targetHeight > MAX_DIM) {
+          if (targetWidth >= targetHeight) {
+            targetHeight = Math.round((targetHeight * MAX_DIM) / targetWidth);
+            targetWidth = MAX_DIM;
+          } else {
+            targetWidth = Math.round((targetWidth * MAX_DIM) / targetHeight);
+            targetHeight = MAX_DIM;
+          }
+        }
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          resolve({ cleanFile: file, stripped: false });
+          resolve({ cleanFile: workingFile, stripped: false });
           return;
         }
 
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        // Ekspor ke JPEG untuk berkas kamera agar ukuran berkas hemat (~300KB-700KB) dan aman di Vercel
+        const isPngSmall = workingFile.type === 'image/png' && workingFile.size < 2 * 1024 * 1024;
+        const exportMime = isPngSmall ? 'image/png' : 'image/jpeg';
+        const exportQuality = 0.85;
 
         canvas.toBlob(
           (blob) => {
             if (!blob) {
-              resolve({ cleanFile: file, stripped: false });
+              resolve({ cleanFile: workingFile, stripped: false });
               return;
             }
-            const cleanFile = new File([blob], `clean_${file.name}`, {
-              type: file.type || 'image/png',
+            const baseName = workingFile.name.replace(/\.[^/.]+$/, '');
+            const ext = exportMime === 'image/jpeg' ? '.jpg' : '.png';
+            const cleanName = `clean_${baseName}${ext}`;
+
+            const cleanFile = new File([blob], cleanName, {
+              type: exportMime,
               lastModified: Date.now(),
             });
             resolve({ cleanFile, stripped: true });
           },
-          file.type || 'image/png',
-          0.95
+          exportMime,
+          exportQuality
         );
       };
 
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        resolve({ cleanFile: file, stripped: false });
+        resolve({ cleanFile: workingFile, stripped: false });
       };
 
       img.src = url;
@@ -573,7 +671,7 @@ export function analyzeImageForensics(
     fileNameLower.includes('edited');
 
   const details: string[] = [];
-  const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+  const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|heic|heif|bmp)$/i.test(file.name);
 
   if (!isImage) {
     details.push('🟢 Format Berkas Tervalidasi Utuh (non-gambar).');

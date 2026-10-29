@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Clock,
   Paperclip,
@@ -28,6 +28,7 @@ import {
   Copy,
   Check,
   RefreshCw,
+  RotateCcw,
   MessageSquare,
 } from 'lucide-react';
 import {
@@ -223,62 +224,33 @@ export default function AdminCaseDetailModal({
     note: string;
   } | null>(null);
 
-  // ─── STATE KHUSUS SARAN AI & ASISTEN PENANGANAN KASUS ──────────────────────
-  const [aiPlanText, setAiPlanText] = useState<string>('');
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState<boolean>(false);
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model'; text: string; timestamp: string }[]>([]);
+  // ─── STATE KHUSUS SARAN AI ARA & ASISTEN PENANGANAN KASUS ──────────────────
+  const [chatMessages, setChatMessages] = useState<
+    { id: string; role: 'user' | 'model'; text: string; timestamp: string }[]
+  >([]);
   const [chatInput, setChatInput] = useState<string>('');
   const [isSendingChat, setIsSendingChat] = useState<boolean>(false);
-  const [copiedPlan, setCopiedPlan] = useState<boolean>(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [savedToNotesId, setSavedToNotesId] = useState<string | null>(null);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Generate Saran Penanganan oleh AI
-  const handleGenerateInitialPlan = async () => {
-    if (!report) return;
-    setIsGeneratingPlan(true);
-    const triage = getAITriageData(report);
-
-    const evidenceSummary = (report.evidences || [])
-      .map((e) => `${e.fileName} (status: ${e.forensicStatus || 'Original'}, exifStripped: ${e.exifStripped ? 'Ya' : 'Tidak'})`)
-      .join(', ');
-
-    try {
-      const res = await fetch('/api/admin/case-ai-advisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caseData: {
-            caseId: report.caseId,
-            category: report.category,
-            chronology: report.chronology || '',
-            targetFaculty: report.targetFaculty,
-            receivedAt: formatDateID(report.receivedAt),
-            status: report.status,
-            riskLevel: triage.riskLevel,
-            urgencyScore: triage.urgencyScore,
-            evidenceSummary,
-            evidenceCount: report.evidences?.length || 0,
-          },
-          mode: 'initial_plan',
-        }),
-      });
-
-      const json = await res.json();
-      if (json.data && json.data.text) {
-        setAiPlanText(json.data.text);
-      }
-    } catch (err) {
-      console.error('Gagal memuat saran penanganan AI:', err);
-    } finally {
-      setIsGeneratingPlan(false);
+  useEffect(() => {
+    if (activeTab === 'ai_suggestion') {
+      chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  };
+  }, [chatMessages, isSendingChat, activeTab]);
 
-  // Kirim Pesan Chatbot Konsultasi Kasus Admin
-  const handleSendChat = async (customPrompt?: string) => {
+  // Kirim Pesan Konsultasi ke Ara (AI Satgas Advisor)
+  const handleSendChat = async (
+    customPrompt?: string,
+    mode: 'chat' | 'initial_plan' = 'chat'
+  ) => {
     const query = (customPrompt || chatInput).trim();
     if (!query || !report || isSendingChat) return;
 
+    const userMsgId = `user-${Date.now()}`;
     const userMsg = {
+      id: userMsgId,
       role: 'user' as const,
       text: query,
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -290,7 +262,12 @@ export default function AdminCaseDetailModal({
 
     const triage = getAITriageData(report);
     const evidenceSummary = (report.evidences || [])
-      .map((e) => `${e.fileName} (${e.forensicStatus})`)
+      .map(
+        (e) =>
+          `${e.fileName} (status: ${e.forensicStatus || 'Original'}, exifStripped: ${
+            e.exifStripped ? 'Ya' : 'Tidak'
+          })`
+      )
       .join(', ');
 
     try {
@@ -310,17 +287,21 @@ export default function AdminCaseDetailModal({
             evidenceSummary,
             evidenceCount: report.evidences?.length || 0,
           },
-          mode: 'chat',
+          mode,
           question: query,
           history: chatMessages.map((m) => ({ role: m.role, text: m.text })),
         }),
       });
 
       const json = await res.json();
-      const botReply = json?.data?.text || 'Maaf, terjadi kendala saat memproses konsultasi AI.';
+      const botReply =
+        json?.data?.text || 'Maaf, terjadi kendala saat memproses konsultasi Ara AI.';
+
+      const modelMsgId = `model-${Date.now()}`;
       setChatMessages((prev) => [
         ...prev,
         {
+          id: modelMsgId,
           role: 'model',
           text: botReply,
           timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -328,11 +309,13 @@ export default function AdminCaseDetailModal({
       ]);
     } catch (err) {
       console.error('Error in case advisor chat:', err);
+      const modelMsgId = `model-${Date.now()}`;
       setChatMessages((prev) => [
         ...prev,
         {
+          id: modelMsgId,
           role: 'model',
-          text: 'Terjadi gangguan jaringan saat menghubungi AI Advisor.',
+          text: 'Terjadi gangguan jaringan saat menghubungi Ara (AI Satgas Advisor). Silakan coba beberapa saat lagi.',
           timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -341,14 +324,24 @@ export default function AdminCaseDetailModal({
     }
   };
 
-  const handleCopyPlanToNotes = () => {
-    if (!aiPlanText) return;
-    navigator.clipboard.writeText(aiPlanText);
-    setCopiedPlan(true);
-    setTimeout(() => setCopiedPlan(false), 2500);
+  const handleTriggerInitialPlan = () => {
+    handleSendChat(
+      '⚡ Mohon buatkan Rekomendasi Rencana Strategis Penanganan Kasus (Saran Lengkap AI) secara terstruktur berdasarkan fakta kasus ini.',
+      'initial_plan'
+    );
+  };
 
-    // Otomatis masukkan cuplikan rekomendasi ke input catatan rahasia Satgas
-    setInternalNoteInput(`[Rekomendasi AI] ${aiPlanText.slice(0, 250)}...`);
+  const handleCopyText = (msgId: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageId(msgId);
+    setTimeout(() => setCopiedMessageId(null), 2500);
+  };
+
+  const handleSaveToNotes = (msgId: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setSavedToNotesId(msgId);
+    setInternalNoteInput(`[Saran Ara AI - ${report?.caseId}] ${text.slice(0, 300)}...`);
+    setTimeout(() => setSavedToNotesId(null), 3000);
   };
 
   const handleConfirmVerification = () => {
@@ -856,45 +849,40 @@ export default function AdminCaseDetailModal({
             </div>
           )}
 
-          {/* TAB 4: Saran Penanganan AI & Asisten Konsultasi Kasus */}
+          {/* TAB 4: Saran AI Ara (Asisten Penanganan & Konsultasi Kasus Terpadu) */}
           {activeTab === 'ai_suggestion' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Context Header Card */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-500/10 via-emerald-500/5 to-transparent border border-teal-500/30 dark:border-teal-500/20 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-sm shrink-0">
-                      <Sparkles className="w-5 h-5 text-emerald-200" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center shadow-md shrink-0 relative">
+                      <Bot className="w-5 h-5 text-emerald-100" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white dark:border-stone-900 animate-pulse" />
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-sm text-stone-900 dark:text-stone-50 flex items-center gap-2">
-                        <span>Asisten & Saran Penanganan AI Satgas PPKS</span>
+                      <h4 className="font-extrabold text-sm text-stone-900 dark:text-stone-50 flex items-center gap-2 flex-wrap">
+                        <span>Ara (AI Satgas Advisor)</span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-bold border border-teal-300 dark:border-teal-800">
-                          Domain Advisor
+                          Domain Advisor • Kasus Terpadu
                         </span>
                       </h4>
                       <p className="text-xs text-stone-600 dark:text-stone-300">
-                        AI menganalisis data fakta pelapor (kronologi kasus, tingkat keparahan risiko, bukti forensik biner, & regulasi Permendikbudristek No. 30/2021) untuk memberikan rekomendasi taktis.
+                        Ara menganalisis fakta kasus, bukti biner forensik, kronologi pelapor, dan regulasi hukum (Permendikbudristek No. 30/2021 & UU TPKS No. 12/2022) untuk mendampingi investigasi Satgas PPKS.
                       </p>
                     </div>
                   </div>
 
-                  {/* Tombol Buat Saran Penanganan AI */}
-                  <button
-                    type="button"
-                    onClick={handleGenerateInitialPlan}
-                    disabled={isGeneratingPlan}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-teal-600/30 transition-all cursor-pointer disabled:opacity-60 shrink-0"
-                  >
-                    {isGeneratingPlan ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 text-emerald-200" />
-                    )}
-                    <span>
-                      {aiPlanText ? '⚡ Buat Ulang Saran Penanganan AI' : '⚡ Saran Penanganan yang Dilakukan oleh AI'}
-                    </span>
-                  </button>
+                  {chatMessages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setChatMessages([])}
+                      className="px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-stone-400" />
+                      <span>Reset Obrolan</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Case Parameters Pills */}
@@ -906,155 +894,178 @@ export default function AdminCaseDetailModal({
                     Kategori: <strong className="text-stone-900 dark:text-white">{report.category}</strong>
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
-                    Risiko: <strong className="text-teal-600 dark:text-teal-400">{getAITriageData(report).riskLevel}</strong>
+                    Risiko: <strong className="text-teal-600 dark:text-teal-400">{getAITriageData(report).riskLevel} ({getAITriageData(report).urgencyScore}/100)</strong>
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
-                    Bukti Digital: <strong className="text-stone-900 dark:text-white">{report.evidences?.length || 0} Berkas</strong>
+                    Bukti Forensik: <strong className="text-stone-900 dark:text-white">{report.evidences?.length || 0} Berkas</strong>
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
-                    Fakultas: <strong className="text-stone-900 dark:text-white">{report.targetFaculty || 'Kampus Umum'}</strong>
+                    Fakultas / Unit: <strong className="text-stone-900 dark:text-white">{report.targetFaculty || 'Kampus Umum'}</strong>
                   </span>
                 </div>
               </div>
 
-              {/* Rencana Rekomendasi Penanganan Kasus (Bila sudah di-generate) */}
-              {isGeneratingPlan && (
-                <div className="p-6 rounded-2xl bg-stone-50 dark:bg-stone-900/70 border border-teal-500/30 flex flex-col items-center justify-center gap-3 py-10">
-                  <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
-                  <div className="text-center space-y-1">
-                    <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                      Menganalisis Kronologi Pelapor & Mengevaluasi Regulasi Kampus...
-                    </p>
-                    <p className="text-[11px] text-stone-500">
-                      Menyusun rencana aksi bertahap, protokol perlindungan korban, dan rekomendasi sanksi.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {aiPlanText && !isGeneratingPlan && (
-                <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-stone-900 border-2 border-teal-500/40 dark:border-teal-600/40 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Gavel className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      <h4 className="font-bold text-xs uppercase tracking-wider text-stone-800 dark:text-stone-200">
-                        Hasil Rekomendasi Tindak Lanjut Penanganan (AI Strategic Plan)
-                      </h4>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCopyPlanToNotes}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        {copiedPlan ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedPlan ? 'Tersalin ke Clipboard & Catatan!' : 'Salin ke Catatan Rahasia Satgas'}</span>
-                      </button>
-                    </div>
+              {/* UNIFIED INTERACTIVE PANEL: Gabungan Tombol Saran Cepat & Percakapan Tanya Jawab */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-4">
+                {/* ── SECTION REKOMENDASI CEPAT & BUTTON SARAN (TERINTEGRASI) ── */}
+                <div className="space-y-2 pb-3 border-b border-stone-200 dark:border-stone-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                      <span>Rekomendasi Cepat & Aksi Satu Klik Ara:</span>
+                    </span>
+                    <span className="text-[10px] text-stone-400 font-medium hidden sm:inline">
+                      Klik tombol untuk saran instan atau ketik pertanyaan bebas di bawah
+                    </span>
                   </div>
 
-                  <div className="bg-stone-50/70 dark:bg-stone-950/40 p-4 sm:p-5 rounded-xl border border-stone-200/80 dark:border-stone-800 max-h-[500px] overflow-y-auto">
-                    <FormattedAIContent content={aiPlanText} />
-                  </div>
-                </div>
-              )}
-
-              {/* Chatbot Konsultasi Interaktif untuk Admin (Tanya Jawab Seputar Kasus Ini) */}
-              <div className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-4">
-                <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                    <div>
-                      <h4 className="font-bold text-xs text-stone-900 dark:text-stone-100">
-                        Konsultasi Tanya Jawab Kasus dengan AI Advisor
-                      </h4>
-                      <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                        Ajukan pertanyaan spesifik, minta draf pemanggilan, atau saran mediasi berdasarkan analisis data kasus ini.
-                      </p>
-                    </div>
-                  </div>
-
-                  {chatMessages.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Tombol Utama: Saran Penanganan Lengkap AI */}
                     <button
                       type="button"
-                      onClick={() => setChatMessages([])}
-                      className="text-[11px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
+                      onClick={handleTriggerInitialPlan}
+                      disabled={isSendingChat}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm hover:shadow-teal-600/30 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                     >
-                      Bersihkan Obrolan
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+                      <span>⚡ Rekomendasi Rencana Strategis (Saran Lengkap AI)</span>
                     </button>
-                  )}
-                </div>
 
-                {/* Suggested Quick Question Chips */}
-                <div className="space-y-1.5">
-                  <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 block">
-                    💡 Rekomendasi Pertanyaan Cepat:
-                  </span>
-                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Tombol-tombol Saran Spesifik */}
                     {[
-                      'Apakah bukti digital kasus ini cukup kuat untuk eskalasi ke Komite Etik?',
-                      'Bagaimana prosedur mediasi aman tanpa konfrontasi langsung?',
-                      'Buatkan draf surat panggilan klarifikasi resmi untuk pihak terlapor',
-                      'Apa rekomendasi sanksi administratif maksimal berdasarkan fakta ini?',
-                    ].map((q, idx) => (
+                      {
+                        label: '🔍 Evaluasi Bukti Forensik',
+                        prompt: 'Bagaimana evaluasi kekuatan alat bukti forensik digital pada kasus ini? Apakah sah untuk dasar pemeriksaan BAP?',
+                      },
+                      {
+                        label: '✉️ Draf Surat Panggilan Terlapor',
+                        prompt: 'Buatkan draf resmi surat panggilan klarifikasi tertutup untuk pihak terlapor sesuai standar regulasi kampus.',
+                      },
+                      {
+                        label: '🛡️ Perlindungan Korban & PFA',
+                        prompt: 'Bagaimana protokol pendampingan psikologis (PFA) dan perlindungan korban dari intimidasi / retaliasi nilai?',
+                      },
+                      {
+                        label: '⚖️ Sanksi & Permendikbud 30/2021',
+                        prompt: 'Apa rujukan pasal hukum Permendikbudristek No. 30 Tahun 2021 dan rekomendasi tingkatan sanksi untuk kasus ini?',
+                      },
+                      {
+                        label: '🤝 SOP Mediasi Aman',
+                        prompt: 'Bagaimana tata cara mediasi yang aman tanpa mempertemukan langsung korban dengan terlapor?',
+                      },
+                    ].map((item, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => handleSendChat(q)}
+                        onClick={() => handleSendChat(item.prompt, 'chat')}
                         disabled={isSendingChat}
-                        className="text-[11px] font-medium px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-teal-500 text-stone-700 dark:text-stone-300 hover:text-teal-700 dark:hover:text-teal-300 transition-colors cursor-pointer text-left shadow-2xs disabled:opacity-50"
+                        className="text-[11px] font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-teal-500 text-stone-700 dark:text-stone-300 hover:text-teal-700 dark:hover:text-teal-300 transition-colors cursor-pointer text-left shadow-2xs disabled:opacity-50 shrink-0"
                       >
-                        {q}
+                        {item.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Chat Messages Stream Area */}
-                <div className="space-y-3 max-h-72 overflow-y-auto p-3 rounded-xl bg-white dark:bg-stone-950/50 border border-stone-200/80 dark:border-stone-800">
-                  {/* Default Welcome Message */}
-                  <div className="flex items-start gap-2.5 max-w-[85%]">
-                    <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                      <Bot className="w-4 h-4" />
+                {/* ── CHAT MESSAGES STREAM AREA (SATU KESATUAN TERPADU) ── */}
+                <div className="space-y-3.5 max-h-[460px] overflow-y-auto p-3.5 rounded-2xl bg-white dark:bg-stone-950/60 border border-stone-200/90 dark:border-stone-800 shadow-inner">
+                  {/* Default Welcome Card from Ara */}
+                  <div className="flex items-start gap-3 max-w-[92%] sm:max-w-[85%]">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                      <Bot className="w-4 h-4 text-emerald-100" />
                     </div>
-                    <div className="p-3 rounded-2xl rounded-tl-xs bg-stone-100 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 leading-relaxed space-y-1">
-                      <span className="font-bold text-[10px] text-teal-600 dark:text-teal-400 block">
-                        AI Satgas Advisor • Siap Konsultasi
-                      </span>
+                    <div className="p-4 rounded-2xl rounded-tl-xs bg-stone-100/90 dark:bg-stone-850 border border-stone-200/90 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 leading-relaxed space-y-2 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-[11px] text-teal-700 dark:text-teal-400">
+                          Ara (AI Satgas Advisor)
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-bold">
+                          Aktif
+                        </span>
+                      </div>
                       <p>
-                        Halo Satgas PPKS. Saya telah memuat data kasus <strong>{report.caseId}</strong> (Kategori: <em>{report.category}</em>, Tingkat Risiko: <em>{getAITriageData(report).riskLevel}</em>). Silakan tanyakan hal apa pun yang ingin Anda konsultasikan seputar penanganan kasus ini.
+                        Halo Tim Satgas PPKS! Saya <strong>Ara</strong>, asisten AI resmi RuangAman. Saya telah memuat seluruh data laporan kasus <strong>{report.caseId}</strong> (Kategori: <em>{report.category}</em>, Tingkat Urgensi: <em>{getAITriageData(report).riskLevel}</em>, {report.evidences?.length || 0} Berkas Bukti Digital).
                       </p>
+                      <p className="text-[11.5px] text-stone-600 dark:text-stone-300">
+                        Saya dapat membantu menyusun rencana strategis penanganan kasus, mengevaluasi bukti forensik biner, membuat draf surat panggilan resmi, atau menjawab pertanyaan taktis apa pun secara dinamis.
+                      </p>
+                      <div className="pt-1 text-[11px] text-teal-700 dark:text-teal-400 font-semibold flex items-center gap-1.5">
+                        <span>👉 Silakan tekan tombol saran cepat di atas atau ajukan pertanyaan spesifik pada kolom di bawah.</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Dynamic Chat Messages */}
-                  {chatMessages.map((msg, i) => (
+                  {/* Dynamic Stream of User Questions and Ara Responses */}
+                  {chatMessages.map((msg) => (
                     <div
-                      key={i}
+                      key={msg.id}
                       className={`flex items-start gap-2.5 ${
                         msg.role === 'user' ? 'justify-end' : 'justify-start'
                       }`}
                     >
                       {msg.role === 'model' && (
-                        <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                          <Bot className="w-4 h-4" />
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                          <Bot className="w-4 h-4 text-emerald-100" />
                         </div>
                       )}
 
                       <div
-                        className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] space-y-1 ${
+                        className={`p-3.5 sm:p-4 rounded-2xl text-xs leading-relaxed max-w-[92%] sm:max-w-[85%] space-y-2.5 ${
                           msg.role === 'user'
                             ? 'bg-teal-600 text-white rounded-tr-xs shadow-xs'
-                            : 'bg-stone-100 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-700 text-stone-800 dark:text-stone-200 rounded-tl-xs shadow-2xs'
+                            : 'bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 rounded-tl-xs shadow-2xs'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2 text-[10px] opacity-75">
-                          <span>{msg.role === 'user' ? 'Satgas PPKS' : 'AI Advisor'}</span>
+                        <div className="flex items-center justify-between gap-3 text-[10px] opacity-75 border-b border-current/10 pb-1.5">
+                          <span className="font-bold">
+                            {msg.role === 'user' ? '👤 Satgas PPKS' : '🤖 Ara (AI Satgas Advisor)'}
+                          </span>
                           <span>{msg.timestamp}</span>
                         </div>
+
                         {msg.role === 'model' ? (
-                          <FormattedAIContent content={msg.text} />
+                          <div className="space-y-3">
+                            <FormattedAIContent content={msg.text} />
+
+                            {/* Action Bar for AI Responses */}
+                            <div className="flex items-center gap-2 pt-2 border-t border-stone-200/60 dark:border-stone-700/60 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => handleSaveToNotes(msg.id, msg.text)}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              >
+                                {savedToNotesId === msg.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Tersimpan di Draf Catatan Satgas!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                    <span>Salin ke Catatan Rahasia Satgas</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(msg.id, msg.text)}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-stone-600 dark:text-stone-300 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                              >
+                                {copiedMessageId === msg.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Tersalin!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-stone-400" />
+                                    <span>Salin Teks Lengkap</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <p className="whitespace-pre-wrap">{msg.text}</p>
                         )}
@@ -1062,27 +1073,35 @@ export default function AdminCaseDetailModal({
                     </div>
                   ))}
 
+                  {/* Typing Indicator */}
                   {isSendingChat && (
-                    <div className="flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400 italic py-1">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>AI Advisor sedang menganalisis informasi kasus & merumuskan jawaban...</span>
+                    <div className="flex items-center gap-2.5 text-xs text-teal-700 dark:text-teal-400 p-2">
+                      <div className="w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                        <Bot className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex items-center gap-2 bg-stone-100 dark:bg-stone-800 px-3.5 py-2 rounded-2xl rounded-tl-xs border border-stone-200 dark:border-stone-700">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600 dark:text-teal-400" />
+                        <span className="italic text-[11px]">Ara sedang menganalisis berkas kasus & merumuskan rekomendasi...</span>
+                      </div>
                     </div>
                   )}
+
+                  <div ref={chatMessagesEndRef} />
                 </div>
 
-                {/* Chat Input Bar */}
+                {/* ── CHAT INPUT BAR (BAGIAN MENGETIK PERTANYAAN) ── */}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSendChat();
                   }}
-                  className="flex gap-2"
+                  className="flex gap-2 pt-1"
                 >
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Tanyakan analisis kronologi, regulasi, atau strategi penanganan kasus ini..."
+                    placeholder="Tanyakan analisis kronologi, regulasi, draf surat, atau konsultasikan kasus ini ke Ara..."
                     disabled={isSendingChat}
                     className="flex-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-2.5 text-xs text-stone-900 dark:text-stone-100 outline-none focus:border-teal-500 transition-colors shadow-2xs disabled:opacity-60"
                   />
@@ -1091,8 +1110,12 @@ export default function AdminCaseDetailModal({
                     disabled={!chatInput.trim() || isSendingChat}
                     className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
                   >
-                    <Send className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Kirim</span>
+                    {isSendingChat ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    <span className="hidden sm:inline">Kirim ke Ara</span>
                   </button>
                 </form>
               </div>
