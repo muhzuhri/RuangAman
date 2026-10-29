@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkServerRateLimit, getClientIp } from '@/lib/serverRateLimit';
 import { type Report, type CaseStatus } from '@/lib/types';
 
-function getSupabaseServerConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  const isConfigured = Boolean(url) && Boolean(key) && !url.includes('your-supabase-project');
-  return { url, key, isConfigured };
-}
+import { getSupabaseServerConfig } from '@/lib/supabaseConfig';
 
 function dbRowToReport(row: any): Report {
   return {

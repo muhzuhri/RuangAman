@@ -84,25 +84,43 @@ export default function AdminDashboard() {
       }
     }
 
+    // Storage listener antar tab browser
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'aman_kampus_reports') loadReports();
+      if (e.key === 'aman_kampus_reports' || e.key === 'ruang_aman_reports') {
+        loadReports(true);
+      }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+
+    // Auto-sync berkala (setiap 20 detik) untuk mendeteksi laporan baru yang masuk dari HP / perangkat lain
+    const syncInterval = setInterval(() => {
+      loadReports(true);
+    }, 20000);
+
+    // Auto-sync instan saat pengguna kembali/beralih fokus ke jendela laptop
+    const onFocus = () => {
+      loadReports(true);
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onFocus);
+      clearInterval(syncInterval);
+    };
   }, [router]);
 
-  const loadReports = async () => {
-    setIsLoadingReports(true);
+  const loadReports = async (silent: boolean = false) => {
+    if (!silent) setIsLoadingReports(true);
     try {
-      // Single HTTP request — no more duplicate checkSupabaseStatus call
+      // Mengambil data terpusat dari cloud Supabase (sinkron di HP & Laptop)
       const { reports: fetched, status } = await fetchReportsWithStatus();
       setDbStatus(status);
       setReports(Array.isArray(fetched) ? fetched : []);
     } catch (e) {
       console.warn('Error loading reports in admin:', e);
-      setReports([]);
     } finally {
-      setIsLoadingReports(false);
+      if (!silent) setIsLoadingReports(false);
     }
   };
 

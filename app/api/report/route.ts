@@ -21,12 +21,7 @@ interface ReportSubmissionPayload {
   receivedAt?: string;
 }
 
-function getSupabaseServerConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  const isConfigured = Boolean(url) && Boolean(key) && !url.includes('your-supabase-project');
-  return { url, key, isConfigured };
-}
+import { getSupabaseServerConfig } from '@/lib/supabaseConfig';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const ip = getClientIp(request);

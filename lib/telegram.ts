@@ -419,7 +419,6 @@ export async function sendTelegramFullReportNotification(
     aiSection,
     `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
     `🔗 <b>Akses Dasbor Admin Satgas PPKS:</b>`,
-    `<a href="https://ruang-aman-ten.vercel.app/admin">👉 Buka & Tindaklanjuti Kasus di Dasbor Satgas</a>`,
     `URL: ruang-aman-ten.vercel.app/admin`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
     `🛡️ <i>RuangAman Crisis Dispatcher System</i>`,
