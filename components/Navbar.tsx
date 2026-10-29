@@ -28,7 +28,7 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { name: 'Berandaa', path: '/' },
+    { name: 'Beranda', path: '/' },
     { name: 'Pelaporan', path: '/report' },
     { name: 'Pelacakan', path: '/track' },
     { name: 'Layanan & Informasi', path: '/support' },
