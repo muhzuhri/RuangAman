@@ -75,7 +75,7 @@ export default function AdminDashboard() {
     loadReports();
 
     // Load internal Satgas confidential notes from localStorage
-    const savedNotes = typeof window !== 'undefined' ? localStorage.getItem('aman_kampus_internal_notes') : null;
+    const savedNotes = typeof window !== 'undefined' ? localStorage.getItem('ruang_aman_internal_notes') : null;
     if (savedNotes) {
       try {
         setInternalNotesMap(JSON.parse(savedNotes));
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
 
     // Storage listener antar tab browser
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'aman_kampus_reports' || e.key === 'ruang_aman_reports') {
+      if (e.key === 'ruang_aman_reports') {
         loadReports(true);
       }
     };
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
   };
 
   const resetMockReports = () => {
-    localStorage.setItem('aman_kampus_reports', JSON.stringify(MOCK_REPORTS));
+    localStorage.setItem('ruang_aman_reports', JSON.stringify(MOCK_REPORTS));
     setReports(MOCK_REPORTS);
     setSelectedReport(null);
   };
@@ -317,7 +317,7 @@ export default function AdminDashboard() {
       [caseId]: [...(internalNotesMap[caseId] || []), newNote],
     };
     setInternalNotesMap(updatedMap);
-    localStorage.setItem('aman_kampus_internal_notes', JSON.stringify(updatedMap));
+    localStorage.setItem('ruang_aman_internal_notes', JSON.stringify(updatedMap));
     setInternalNoteInput('');
   };
 

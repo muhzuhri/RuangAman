@@ -77,7 +77,7 @@ export default function AdminHeader({
             >
               <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-gray-800/90 border border-gray-600/90 p-0.5 group-hover:border-teal-400 group-hover:shadow-[0_0_15px_rgba(45,212,191,0.35)] transition-all">
                 <img
-                  src="/images/loogooo.png"
+                  src="/images/logo.png"
                   alt="RuangAman Logo"
                   className="w-full h-full object-contain"
                 />

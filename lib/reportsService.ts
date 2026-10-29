@@ -69,9 +69,7 @@ export function dbRowToReport(row: any): Report {
 export function getDeletedCaseIds(): Set<string> {
   if (typeof window === 'undefined') return new Set();
   try {
-    const deletedStr =
-      localStorage.getItem('ruang_aman_deleted_case_ids') ||
-      localStorage.getItem('aman_kampus_deleted_case_ids');
+    const deletedStr = localStorage.getItem('ruang_aman_deleted_case_ids');
     if (deletedStr) {
       const parsed = JSON.parse(deletedStr);
       if (Array.isArray(parsed)) return new Set(parsed);
@@ -102,7 +100,6 @@ export function syncReportsToLocalStorage(reports: Report[]): void {
     }));
 
     localStorage.setItem('ruang_aman_reports', JSON.stringify(lightweight));
-    localStorage.setItem('aman_kampus_reports', JSON.stringify(lightweight));
   } catch (e) {
     console.warn('LocalStorage sync warning:', e);
   }
@@ -114,9 +111,7 @@ export function syncReportsToLocalStorage(reports: Report[]): void {
 export function getLocalReports(includeMocks: boolean = false): Report[] {
   let localReports: Report[] = [];
   if (typeof window !== 'undefined') {
-    const savedStr =
-      localStorage.getItem('ruang_aman_reports') ||
-      localStorage.getItem('aman_kampus_reports');
+    const savedStr = localStorage.getItem('ruang_aman_reports');
     if (savedStr) {
       try {
         const parsed = JSON.parse(savedStr);
@@ -154,7 +149,7 @@ export async function saveReportToDatabase(report: Report): Promise<{ success: b
   try {
     const savedStr =
       typeof window !== 'undefined'
-        ? localStorage.getItem('ruang_aman_reports') || localStorage.getItem('aman_kampus_reports')
+        ? localStorage.getItem('ruang_aman_reports')
         : null;
     const existing: Report[] = savedStr ? JSON.parse(savedStr) : [];
 
@@ -173,14 +168,12 @@ export async function saveReportToDatabase(report: Report): Promise<{ success: b
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('ruang_aman_reports', JSON.stringify(trimmed));
-        localStorage.setItem('aman_kampus_reports', JSON.stringify(trimmed));
       } catch (quotaErr) {
         const stripped = trimmed.slice(0, 10).map((r) => ({
           ...r,
           evidences: r.evidences?.map((ev) => ({ ...ev, dataUrl: undefined })),
         }));
         localStorage.setItem('ruang_aman_reports', JSON.stringify(stripped));
-        localStorage.setItem('aman_kampus_reports', JSON.stringify(stripped));
       }
     }
   } catch (e) {
@@ -621,15 +614,12 @@ export async function updateReportInDatabase(
   // Update lokal terlebih dahulu
   if (typeof window !== 'undefined') {
     try {
-      const savedStr =
-        localStorage.getItem('ruang_aman_reports') ||
-        localStorage.getItem('aman_kampus_reports');
+      const savedStr = localStorage.getItem('ruang_aman_reports');
       const reports: Report[] = savedStr ? JSON.parse(savedStr) : [...MOCK_REPORTS];
       const idx = reports.findIndex((r) => r.caseId === caseId);
       if (idx !== -1) {
         reports[idx] = { ...reports[idx], ...updatedFields };
         localStorage.setItem('ruang_aman_reports', JSON.stringify(reports));
-        localStorage.setItem('aman_kampus_reports', JSON.stringify(reports));
       }
     } catch (e) {
       console.warn('LocalStorage update failed:', e);
@@ -700,24 +690,18 @@ export async function deleteReportFromDatabase(
 ): Promise<{ success: boolean; error?: string }> {
   if (typeof window !== 'undefined') {
     try {
-      const deletedStr =
-        localStorage.getItem('ruang_aman_deleted_case_ids') ||
-        localStorage.getItem('aman_kampus_deleted_case_ids');
+      const deletedStr = localStorage.getItem('ruang_aman_deleted_case_ids');
       const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
       if (!deletedList.includes(caseId)) {
         deletedList.push(caseId);
         localStorage.setItem('ruang_aman_deleted_case_ids', JSON.stringify(deletedList));
-        localStorage.setItem('aman_kampus_deleted_case_ids', JSON.stringify(deletedList));
       }
 
-      const savedStr =
-        localStorage.getItem('ruang_aman_reports') ||
-        localStorage.getItem('aman_kampus_reports');
+      const savedStr = localStorage.getItem('ruang_aman_reports');
       if (savedStr) {
         const reports: Report[] = JSON.parse(savedStr);
         const filtered = reports.filter((r) => r.caseId !== caseId);
         localStorage.setItem('ruang_aman_reports', JSON.stringify(filtered));
-        localStorage.setItem('aman_kampus_reports', JSON.stringify(filtered));
       }
     } catch (e) {
       console.warn('LocalStorage delete failed:', e);

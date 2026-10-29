@@ -122,7 +122,7 @@ export default function IntroAnimation() {
                 style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.5)' }}
               >
                 <Image
-                  src="/images/loogooo.png"
+                  src="/images/logo.png"
                   alt="RuangAman Logo"
                   fill
                   className="object-contain p-2"

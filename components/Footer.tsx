@@ -19,7 +19,7 @@ export default function Footer() {
           <div className="flex items-center gap-2.5">
             <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-700 p-1 border border-gray-600">
               <Image
-                src="/images/loogooo.png"
+                src="/images/logo.png"
                 alt="RuangAman Logo"
                 width={40}
                 height={40}

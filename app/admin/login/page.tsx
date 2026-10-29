@@ -135,7 +135,7 @@ export default function AdminLoginPage() {
           <div className="text-center mb-8 space-y-3">
             <div className="w-20 h-20 rounded-2xl bg-gray-700 dark:bg-gray-700 border border-gray-600 flex items-center justify-center mx-auto shadow-lg p-2.5">
               <Image
-                src="/images/loogooo.png"
+                src="/images/logo.png"
                 alt="RuangAman Logo"
                 width={64}
                 height={64}

@@ -180,10 +180,8 @@ export default function TransparencyPage() {
 
     const onStorage = (e: StorageEvent) => {
       if (
-        e.key === 'aman_kampus_reports' ||
         e.key === 'ruang_aman_reports' ||
-        e.key === 'ruang_aman_deleted_case_ids' ||
-        e.key === 'aman_kampus_deleted_case_ids'
+        e.key === 'ruang_aman_deleted_case_ids'
       ) {
         fetchStats();
       }
